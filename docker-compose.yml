@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: product-template-backend
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      # プロファイル: dev（自PC Docker / dev EC2 共通）または prod（prod EC2）
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      JWT_SECRET: ${JWT_SECRET:-docker-dev-secret-key-must-be-at-least-32-characters-long}
+      DB_URL: ${DB_URL:-}
+      DB_USERNAME: ${DB_USERNAME:-}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      HIKARI_MAX_POOL_SIZE: ${HIKARI_MAX_POOL_SIZE:-10}
+      HIKARI_MIN_IDLE: ${HIKARI_MIN_IDLE:-5}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-}
+      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
+      HIBERNATE_SQL_LOG: ${HIBERNATE_SQL_LOG:-WARN}
+      HIBERNATE_BIND_LOG: ${HIBERNATE_BIND_LOG:-WARN}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AWS_SES_REGION: ${AWS_SES_REGION:-ap-northeast-1}
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY:-}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY:-}
+      AWS_SES_FROM_EMAIL: ${AWS_SES_FROM_EMAIL:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5173}}
+      APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL:-http://localhost:${FRONTEND_PORT:-5173}}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: product-template-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_PROXY_TARGET: ${VITE_PROXY_TARGET:-http://backend:8080}
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped

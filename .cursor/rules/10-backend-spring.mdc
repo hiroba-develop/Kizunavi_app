@@ -1,0 +1,47 @@
+---
+description: Spring Boot バックエンドの規約（Java 21 / 例外 / 認証 / OpenAPI 連携）
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# バックエンド（Spring Boot）
+
+## スタックとパッケージ
+
+- Java 21、Spring Boot 3.4.x。ベースパッケージは `com.product.template`。
+- Lombok を活用する（例: `@RequiredArgsConstructor` でコンストラクタ注入、`@Slf4j`）。
+
+## レイヤリング
+
+- `controller` … HTTP。ビジネスロジックは置かず `service` に委譲。
+- `service` … ユースケース。トランザクション境界はここで明示する。
+- `repository` … Spring Data JPA。
+- `entity` … JPA エンティティ。
+- `dto` … API の入出力（OpenAPI 生成と整合させる）。
+- `security` … JWT・Cookie・フィルタ。
+- `exception` … `ApiException` 系と `GlobalExceptionHandler`。
+
+## 例外とレスポンス
+
+- 業務エラーは `ApiException` またはそのサブクラスを `throw` する。コントローラで握りつぶさない。
+- HTTP 本文のエラー形は `ErrorResponse` に統一。ハンドラは [GlobalExceptionHandler](../../backend/src/main/java/com/product/template/exception/GlobalExceptionHandler.java) を踏襲する。
+- ユーザー向けメッセージは **日本語** で分かりやすく。
+
+## バリデーションと認可
+
+- リクエストボディは `@Valid`。Bean Validation メッセージは日本語を心がける。
+- 管理者のみの操作は `@PreAuthorize("hasRole('ADMIN')")` 等で明示する。
+
+## 認証（要約）
+
+- ステートレス（セッションに依存しない）。JWT + HttpOnly リフレッシュ Cookie の方針に従う（[ADR-0005](../../docs/adr/0005-auth-jwt-cookie.md)）。
+
+## API 契約とコード生成
+
+- エンドポイント・DTO の変更は **先に** ルートの `swagger.yaml` を更新する。
+- 生成: `./gradlew openApiGenerate` のあと `./gradlew copyGeneratedSources`（Windows は `gradlew.bat`）。生成された `*Api` インターフェースと `dto` 配下は **手で編集しない**。
+
+## ドキュメント
+
+- 公開クラス・複雑なメソッドには Javadoc を付与し、意図・前提・副作用を **日本語** で書く。
+- テストコードの規約は [`60-testing.mdc`](./60-testing.mdc) を参照する。

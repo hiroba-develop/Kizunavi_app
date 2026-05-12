@@ -1,0 +1,593 @@
+openapi: 3.0.3
+info:
+  title: Product Template API
+  description: Product Template アプリケーションの REST API 仕様
+  version: 1.0.0
+  contact:
+    name: Product Template Team
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発サーバー
+  - url: https://api.example.com
+    description: 本番サーバー
+
+tags:
+  - name: Auth
+    description: 認証関連API
+  - name: Users
+    description: ユーザー管理API
+
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: ログイン
+      description: メールアドレスとパスワードで認証し、アクセストークンとリフレッシュトークンを取得する
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 認証成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: 認証失敗（メールアドレスまたはパスワードが不正）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: ユーザー登録
+      description: 新規ユーザーを登録する
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: ユーザー登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: メールアドレスが既に登録済み
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: トークンリフレッシュ
+      description: リフレッシュトークンを使用して新しいアクセストークンを取得する
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: トークンリフレッシュ成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: リフレッシュトークンが無効または期限切れ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: ログアウト
+      description: 現在のユーザーのリフレッシュトークンを無効化する
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: ログアウト成功
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: ログインユーザー情報取得
+      description: 認証済みユーザー自身の情報を取得する
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Users
+      summary: ログインユーザー情報更新
+      description: 認証済みユーザー自身の情報を更新する
+      operationId: updateCurrentUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: ユーザー一覧取得（管理者専用）
+      description: ページネーション付きでユーザー一覧を取得する。管理者権限が必要。
+      operationId: getUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: ページ番号（0始まり）
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: 1ページあたりの件数
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+        - name: sort
+          in: query
+          description: "ソート条件（例: createdAt,desc）"
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageUserResponse"
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: 権限不足（管理者権限が必要）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: ユーザー詳細取得（管理者専用）
+      description: 指定したIDのユーザー情報を取得する。管理者権限が必要。
+      operationId: getUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ユーザーID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: 権限不足（管理者権限が必要）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: ユーザーが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Users
+      summary: ユーザー削除（管理者専用）
+      description: 指定したIDのユーザーを削除する。管理者権限が必要。
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ユーザーID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: 削除成功
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: 権限不足（管理者権限が必要）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: ユーザーが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Authorization ヘッダーに Bearer トークンを指定: `Authorization: Bearer <token>`"
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+          example: user@example.com
+        password:
+          type: string
+          description: パスワード
+          example: password123
+
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+          example: newuser@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: パスワード（8文字以上100文字以下）
+          example: securePass123
+        name:
+          type: string
+          maxLength: 100
+          description: ユーザー名（100文字以下）
+          example: 田中太郎
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: リフレッシュトークン
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: ユーザー名（100文字以下）
+          example: 山田花子
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: 新しいパスワード（8文字以上100文字以下）
+          example: newSecurePass456
+        currentPassword:
+          type: string
+          description: 現在のパスワード（パスワード変更時に必要）
+          example: oldPassword123
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: アクセストークン（JWT）
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: リフレッシュトークン
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          description: トークンタイプ
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+          description: アクセストークンの有効期限（秒）
+          example: 3600
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ユーザーID
+          example: 1
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+          example: user@example.com
+        name:
+          type: string
+          description: ユーザー名
+          example: 田中太郎
+        role:
+          $ref: "#/components/schemas/Role"
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2025-01-01T00:00:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2025-01-01T12:00:00"
+
+    Role:
+      type: string
+      enum:
+        - ROLE_USER
+        - ROLE_ADMIN
+      description: ユーザーロール
+
+    PageUserResponse:
+      type: object
+      description: ページネーション付きユーザー一覧レスポンス（Spring Data Page形式）
+      properties:
+        content:
+          type: array
+          description: ユーザー一覧
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        pageable:
+          $ref: "#/components/schemas/Pageable"
+        totalElements:
+          type: integer
+          format: int64
+          description: 全件数
+          example: 100
+        totalPages:
+          type: integer
+          description: 総ページ数
+          example: 5
+        size:
+          type: integer
+          description: 1ページあたりの件数
+          example: 20
+        number:
+          type: integer
+          description: 現在のページ番号（0始まり）
+          example: 0
+        sort:
+          $ref: "#/components/schemas/Sort"
+        first:
+          type: boolean
+          description: 最初のページかどうか
+          example: true
+        last:
+          type: boolean
+          description: 最後のページかどうか
+          example: false
+        numberOfElements:
+          type: integer
+          description: 現在のページの要素数
+          example: 20
+        empty:
+          type: boolean
+          description: 空かどうか
+          example: false
+
+    Pageable:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+          description: ページ番号
+          example: 0
+        pageSize:
+          type: integer
+          description: ページサイズ
+          example: 20
+        sort:
+          $ref: "#/components/schemas/Sort"
+        offset:
+          type: integer
+          format: int64
+          description: オフセット
+          example: 0
+        paged:
+          type: boolean
+          example: true
+        unpaged:
+          type: boolean
+          example: false
+
+    Sort:
+      type: object
+      properties:
+        empty:
+          type: boolean
+          example: true
+        sorted:
+          type: boolean
+          example: false
+        unsorted:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      description: エラーレスポンス
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: エラー発生日時
+          example: "2025-01-01T12:00:00"
+        status:
+          type: integer
+          description: HTTPステータスコード
+          example: 400
+        error:
+          type: string
+          description: エラーコード
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: エラーメッセージ
+          example: 入力値が不正です
+        path:
+          type: string
+          description: リクエストパス
+          example: /api/auth/login
+        fieldErrors:
+          type: array
+          description: フィールドごとのバリデーションエラー（バリデーションエラー時のみ）
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+          description: エラーが発生したフィールド名
+          example: email
+        message:
+          type: string
+          description: エラーメッセージ
+          example: 必須項目です
+        rejectedValue:
+          description: 拒否された値
+          example: ""

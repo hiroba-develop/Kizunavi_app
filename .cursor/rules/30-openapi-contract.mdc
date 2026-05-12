@@ -1,0 +1,27 @@
+---
+description: OpenAPI 契約（swagger.yaml）と生成コードの扱い
+globs: swagger.yaml,frontend/src/api/**,backend/src/main/java/com/product/template/controller/*Api.java
+alwaysApply: false
+---
+
+# API 契約（OpenAPI）
+
+## 単一ソース
+
+- 契約の正はリポジトリルートの **`swagger.yaml`**（OpenAPI 3）。実装・ドキュメント・型生成はここから辿れるようにする（[ADR-0006](../../docs/adr/0006-api-contract-openapi.md)）。
+
+## バックエンド
+
+- `swagger.yaml` を更新したら、Gradle で OpenAPI Generator を実行する。
+  - 例: `./gradlew openApiGenerate` のあと `./gradlew copyGeneratedSources`（生成 Java を `src/main/java` に取り込むタスク）。
+- **`AuthApi.java` / `UsersApi.java` 等の `*Api` インターフェース**および **`dto` パッケージの生成クラス**は **手編集しない**。差分は YAML とジェネレータ設定で解決する。
+
+## フロントエンド
+
+- 正の生成コマンドは **`npm run generate:api`**（`openapi-typescript-codegen`）。入力は `../swagger.yaml`、出力は主に `frontend/src/api/`（[ADR-0013](../../docs/adr/0013-frontend-api-codegen.md)）。
+- 生成された `*Service.ts` 等も手編集しない。
+
+## 変更時のコミット単位
+
+- 破壊的変更は **YAML 更新 + バックエンド再生成 + フロント再生成 + 呼び出し側の修正** を可能な限り同一変更セットにまとめる。
+- 手書きコントローラと生成 `*Api` の二重管理に注意し、長期的には生成インターフェース実装への寄せを検討する（ADR-0006 の Consequences）。

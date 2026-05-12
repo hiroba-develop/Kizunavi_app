@@ -1,0 +1,41 @@
+# dev プロファイル（自PC / Docker / AWS dev EC2 共通。接続先はすべて dev の AWS RDS / SES）
+# DB_URL / DB_USERNAME / DB_PASSWORD / AWS_* は .env または EC2 の環境変数で設定する
+# ローカル起動時は .env の LOG_LEVEL=DEBUG / JPA_SHOW_SQL=true で詳細ログ化可能
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+
+  # Spring Boot DevTools（dev のみ）
+  # build/classes・build/resources 配下の更新を検知してアプリを自動再起動する。
+  # ローカルでは `bootRun` が子プロセスで `gradlew -t classes`（継続ビルド）を起動し、再コンパイルを自動で走らせる。
+  # 既定の exclude（static / public / templates / META-INF/* など）はそのまま利用する。
+  devtools:
+    restart:
+      enabled: ${DEVTOOLS_RESTART_ENABLED:true}
+      poll-interval: 2s
+      quiet-period: 1s
+    livereload:
+      enabled: false
+
+jwt:
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:86400000}
+
+aws:
+  ses:
+    enabled: true
+
+logging:
+  level:
+    com.product.template: ${LOG_LEVEL:DEBUG}
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG:DEBUG}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_BIND_LOG:WARN}

@@ -1,0 +1,151 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.12.0'
+    id 'jacoco'
+}
+
+group = 'com.product'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    
+    // SpringDoc OpenAPI (Swagger UI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
+    
+    // OpenAPI Generator dependencies
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.28'
+    implementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+    
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    
+    // AWS SDK for SES
+    implementation platform('software.amazon.awssdk:bom:2.29.51')
+    implementation 'software.amazon.awssdk:ses'
+    
+    // Oracle JDBC Driver
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.6.0.24.10'
+    
+    // .env ファイル読み込み（ローカル開発用）
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Spring Boot DevTools（開発時のホットリロード専用。本番ビルドには含めない）
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    classDirectories.setFrom(
+        files(sourceSets.main.output.asFileTree.matching {
+            exclude 'com/product/template/dto/**'
+            exclude 'com/product/template/controller/*Api.class'
+        })
+    )
+}
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "${rootDir}/../swagger.yaml"
+    outputDir = "${buildDir}/generated-sources/openapi"
+
+    apiPackage = "com.product.template.controller"
+    modelPackage = "com.product.template.dto"
+
+    configOptions = [
+        "dateLibrary"             : "java8-localdatetime",
+        "java8"                   : "true",
+        "interfaceOnly"           : "true",
+        "skipDefaultInterface"    : "true",
+        "useTags"                 : "true",
+        "useSpringBoot3"          : "true",
+        "serializationLibrary"    : "jackson",
+        "hideGenerationTimestamp" : "true",
+        "library"                 : "spring-boot",
+        "delegatePattern"         : "false",
+        "singleContentTypes"      : "true"
+    ]
+
+    globalProperties = [
+        "models": "",
+        "apis"  : ""
+    ]
+}
+
+task copyGeneratedSources(type: Copy) {
+    dependsOn tasks.openApiGenerate
+    from "${buildDir}/generated-sources/openapi/src/main/java"
+    into "src/main/java"
+    include "**/*.java"
+}
+
+// bootRun 時に継続ビルド（-t classes）を子プロセスで起動し、DevTools が build/classes の更新を検知できるようにする
+def isWindowsOs = System.getProperty('os.name').toLowerCase().contains('windows')
+
+tasks.named('bootRun') {
+    doFirst {
+        logger.lifecycle('[hot-reload] gradlew -t classes をバックグラウンドで起動します')
+        def builder = new ProcessBuilder()
+            .directory(project.projectDir)
+            .inheritIO()
+        if (isWindowsOs) {
+            builder.command('cmd', '/c', 'gradlew.bat', '-t', 'classes', '-q')
+        } else {
+            builder.command('./gradlew', '-t', 'classes', '-q')
+        }
+        def watcher = builder.start()
+        Runtime.runtime.addShutdownHook(new Thread({
+            if (watcher.isAlive()) {
+                watcher.destroy()
+                if (!watcher.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    watcher.destroyForcibly()
+                }
+            }
+        } as Runnable))
+    }
+}

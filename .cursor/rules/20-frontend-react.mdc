@@ -1,0 +1,41 @@
+---
+description: React フロントエンドの規約（Query / Zustand / Axios / フォーム / UI）
+globs: frontend/src/**/*.ts,frontend/src/**/*.tsx
+alwaysApply: false
+---
+
+# フロントエンド（React + TypeScript）
+
+## 基本
+
+- React 18 の関数コンポーネント。型は厳密に（`any` の乱用を避ける）。
+- パスエイリアス `@/` は既存どおり（`vite.config.ts` に準拠）。
+
+## HTTP と認証
+
+- API 呼び出しは **`src/lib/axios.ts` の `apiClient`** を使う（`withCredentials`・401 時リフレッシュ済み）。`fetch` の直書きは避ける。
+- ベース URL は `VITE_API_BASE_URL`（未設定時は同一オリジン相対）。詳細は [ADR-0011](../../docs/adr/0011-frontend-data-layer.md)。
+
+## 状態管理
+
+- **サーバー状態**: TanStack Query（`queryClient`・`useQuery` / `useMutation`）。
+- **クライアント状態（認証など）**: Zustand。アクセストークンは **永続化（persist）に含めない** 方針を維持する。
+
+## フォームとルーティング
+
+- フォームは **React Hook Form + Zod + `zodResolver`**（[ADR-0012](../../docs/adr/0012-frontend-routing-forms.md)）。
+- ルーティングは Data Router（`createBrowserRouter`）。ガードは `ProtectedRoute` / `PublicRoute`。
+
+## UI とスタイル
+
+- Tailwind CSS + shadcn/ui（`src/components/ui/`）。新規 UI プリミティブは `npx shadcn-ui@latest add` で追加するのが基本。
+- フォーマットは [`.prettierrc`](../../frontend/.prettierrc)、Lint は [`eslint.config.js`](../../frontend/eslint.config.js) に従う。
+
+## 生成 API クライアント
+
+- `src/api/` は **`npm run generate:api` の生成物**。手編集禁止。契約変更は `swagger.yaml` 更新 → 再生成（[ADR-0013](../../docs/adr/0013-frontend-api-codegen.md)）。
+
+## サプライチェーン
+
+- `frontend/.npmrc` の `min-release-age` と `package-lock.json` を尊重する。依存追加後は lock をコミットする。
+- テストコードの規約は [`60-testing.mdc`](./60-testing.mdc) を参照する。

@@ -1,0 +1,32 @@
+---
+description: Product Template 全体の前提（モノレポ・プロファイル・DB・コミュニケーション）
+alwaysApply: true
+---
+
+# Product Template — プロジェクト概要
+
+## コミュニケーション
+
+- ユーザー向けの説明・コミットメッセージ・コード内コメント（新規）は **日本語** を基本とする。
+
+## リポジトリ構成
+
+- `backend/` … Spring Boot 3.4、Java 21、REST API（詳細は `10-backend-spring.mdc`）。
+- `frontend/` … React 18、Vite、TypeScript（詳細は `20-frontend-react.mdc`）。
+- `docs/adr/` … アーキテクチャ意思決定（MADR）。設計変更時は必ず参照し、必要なら新規 ADR を提案する（`40-adr-docs.mdc`）。
+- ルート `swagger.yaml` … OpenAPI 契約の単一ソース（`30-openapi-contract.mdc`）。
+
+## Spring プロファイルと DB
+
+- プロファイルは **`dev` と `prod` のみ**。H2 等のインメモリ DBは使わない。
+- DB は **Oracle（AWS RDS）** 前提。接続情報は環境変数（`.env` 等）。詳細は [README](../../README.md)、[ADR-0004](../../docs/adr/0004-backend-database-strategy.md)。
+
+## テンプレート運用
+
+- ポート採番・複製時の衝突回避は [docs/port-registry.md](../../docs/port-registry.md) を参照する。
+
+## 作業時の優先参照
+
+1. 該当領域の `.mdc`（このフォルダ内）
+2. 関連 ADR（`docs/adr/README.md` のインデックス）
+3. 各 `README.md`（ルート / `backend/` / `frontend/`）

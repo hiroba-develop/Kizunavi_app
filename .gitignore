@@ -1,0 +1,54 @@
+# ===========================================
+# モノレポ共通
+# ===========================================
+
+# 環境変数ファイル（機密情報を含む）
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ログ
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===========================================
+# Backend (Java / Gradle)
+# ===========================================
+backend/.gradle/
+backend/build/
+!backend/gradle/wrapper/gradle-wrapper.jar
+backend/bin/
+backend/docs/openapi.json
+
+# ===========================================
+# Frontend (Node.js / Vite)
+# ===========================================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/.eslintcache
+frontend/*.tsbuildinfo

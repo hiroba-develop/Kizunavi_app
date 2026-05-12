@@ -1,0 +1,36 @@
+---
+description: ADR（MADR）の書き方と運用
+globs: docs/adr/**/*.md
+alwaysApply: false
+---
+
+# ADR（Architecture Decision Records）
+
+## 目的
+
+- 重要な技術・インフラの判断を **文脈・決定・結果・代替案** とともに残す（[docs/adr/README.md](../../docs/adr/README.md)）。
+
+## フォーマット（MADR）
+
+各ファイルに次のセクションを含める（英語見出しでも日本語見出しでもよいが、プロジェクト既存に合わせる）:
+
+- **Context** … 判断が必要な理由・制約
+- **Decision** … 採用した方針（バージョン・パス参照）
+- **Consequences** … メリット / デメリット・運用上の注意
+- **Alternatives Considered** … 却下した案
+- **References** … リポジトリ内パス・外部リンク
+
+## メタデータ（ファイル先頭）
+
+- `Status`: 通常 `Accepted`。方針転換時は旧 ADR を `Deprecated` にし、新 ADR へリンクする。
+- `Date`: `YYYY-MM-DD`
+- `Deciders`: 任意（チーム名など）
+
+## ファイル名と番号
+
+- 形式: `NNNN-kebab-case-title.md`（例: `0006-api-contract-openapi.md`）。
+- 新規追加時は [README のインデックス](../../docs/adr/README.md) の **次の連番** を使う。
+
+## 言語
+
+- 本文は **日本語** で簡潔に。外部公式ドキュメントへのリンクは積極的に。

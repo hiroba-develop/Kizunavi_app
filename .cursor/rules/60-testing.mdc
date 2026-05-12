@@ -1,0 +1,40 @@
+---
+description: テストコード規約（単体テスト・C0・Vitest / JUnit 5）
+globs: backend/src/test/**/*.java,frontend/src/**/*.test.ts,frontend/src/**/*.test.tsx,frontend/vitest.config.ts
+alwaysApply: false
+---
+
+# テスト規約（単体テスト）
+
+## スコープ
+
+- テストは **単体テスト（C0）** に限定する。結合テスト・E2E は本規約の対象外。
+- DB / HTTP / 外部 API / ファイル I/O は必ずモック化する。
+- 正式方針は [ADR-0024](../../docs/adr/0024-testing-strategy.md) に従う。
+
+## バックエンド（JUnit 5）
+
+- `spring-boot-starter-test`（JUnit 5 / AssertJ / Mockito）を使う。
+- 配置は `backend/src/test/java/<同パッケージ>/<Target>Test.java` を基本とする。
+- `@DisplayName` は日本語で「何を保証するテストか」を明記する。
+- 1テスト 1 振る舞いを原則とし、AAA（Arrange / Act / Assert）を守る。
+
+## フロントエンド（Vitest）
+
+- Vitest + React Testing Library + jsdom を使う。
+- `*.test.ts` / `*.test.tsx` は対象コードの近傍 `__tests__/` 配下に置く。
+- `@/lib/axios` など I/O 境界は `vi.mock(...)` で差し替える。
+- 非同期テストは `waitFor` などを使い、時間依存の不安定さを減らす。
+
+## 除外対象
+
+- 次の生成コードはテスト対象外・カバレッジ集計対象外とする。
+  - `backend/**/dto/**`
+  - `backend/**/controller/*Api.java`
+  - `frontend/src/api/**`
+
+## 安定性の注意
+
+- 時刻依存ロジックは `Clock`（Java）や `vi.useFakeTimers()`（Vitest）で制御する。
+- テスト間の状態共有を避けるため、`beforeEach` / `afterEach` で初期化する。
+- 新規テンプレート作成時は [テスト入門ガイド](../../docs/guides/testing-guide.md) の命名・構成に合わせる。

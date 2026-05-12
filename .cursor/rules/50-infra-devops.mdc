@@ -1,0 +1,28 @@
+---
+description: Docker・Compose・application.yml・AWS 運用の注意
+globs: docker-compose.yml,**/Dockerfile,backend/src/main/resources/application*.yml
+alwaysApply: false
+---
+
+# インフラ・コンテナ・設定
+
+## ローカル / Compose
+
+- ルート [`.env.example`](../../.env.example) を基に `.env` を整備する。新しい環境変数を追加したら **`.env.example` と [docker-compose.yml](../../docker-compose.yml) のコメント** を更新する。
+- ポートを変える場合は [docs/port-registry.md](../../docs/port-registry.md) と整合を取る。
+
+## Dockerfile
+
+- `backend/Dockerfile` / `frontend/Dockerfile` を変更する場合、マルチステージ・非 root ユーザー・ヘルスチェック等、既存パターンを踏襲する。
+- フロントの本番インストールは **`npm ci`** と lockfile 固定を維持する（[frontend/README.md](../../frontend/README.md)）。
+
+## Spring 設定（`application*.yml`）
+
+- プロファイルは **`dev` / `prod` のみ**。DB は Oracle。機密値はコードに直書きせず、環境変数または Secrets Manager 経由（[ADR-0020](../../docs/adr/0020-aws-secrets-management.md)）。
+- 認証・CORS・JWT の変更は [ADR-0005](../../docs/adr/0005-auth-jwt-cookie.md) と矛盾しないか確認する。
+- JPA の `ddl-auto` 方針（dev / prod の差）は [ADR-0004](../../docs/adr/0004-backend-database-strategy.md) に従う。
+
+## AWS・本番
+
+- 本番ランタイムは **単一 EC2 + Docker（docker compose）** を前提とする（[ADR-0025](../../docs/adr/0025-aws-runtime-ec2-docker.md)）。CI/ECR 方針は [ADR-0026](../../docs/adr/0026-cicd-without-iac.md)（IaC は見送り）。旧 ADR [0017](../../docs/adr/0017-aws-runtime-ecs-fargate.md) / [0022](../../docs/adr/0022-aws-cicd-iac.md) は Deprecated。
+- 可観測性（ログ・メトリクス）は [ADR-0021](../../docs/adr/0021-aws-observability.md) を参照。
