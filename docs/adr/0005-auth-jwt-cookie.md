@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-04-20
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 ## Context
 
@@ -14,7 +14,7 @@ SPA からバックエンド API を呼ぶ際、**アクセストークンの格
 - **アクセストークン**: HTTP ヘッダー `Authorization: Bearer <JWT>`（短命）。
 - **リフレッシュトークン**: **HttpOnly Cookie**（`CookieUtil`、パス `/api/auth` 等でスコープ）。レスポンス body からはマスクする方針。
 - **JWT 実装**: **JJWT 0.12.x**（[`backend/build.gradle`](../../backend/build.gradle)）。
-- **CORS**: 資格情報あり（`allowCredentials: true`）。許可オリジンは `CORS_ALLOWED_ORIGINS` / `app.cors.allowed-origins` で環境ごとに設定（[`CorsConfig.java`](../../backend/src/main/java/com/product/template/config/CorsConfig.java)）。
+- **CORS**: 資格情報あり（`allowCredentials: true`）。許可オリジンは `CORS_ALLOWED_ORIGINS` / `app.cors.allowed-origins` で環境ごとに設定（[`CorsConfig.java`](../../backend/src/main/java/com/kizunavi/config/CorsConfig.java)）。
 - **API の CSRF**: ステートレス API として CSRF 無効化（Cookie 利用とセットで設計・同一サイト属性の検討が必要）。
 
 ## Consequences
@@ -29,5 +29,5 @@ SPA からバックエンド API を呼ぶ際、**アクセストークンの格
 
 ## References
 
-- [`backend/src/main/java/com/product/template/security/`](../../backend/src/main/java/com/product/template/security/)
-- [`backend/src/main/java/com/product/template/config/JwtConfig.java`](../../backend/src/main/java/com/product/template/config/JwtConfig.java)
+- [`backend/src/main/java/com/kizunavi/security/`](../../backend/src/main/java/com/kizunavi/security/)
+- [`backend/src/main/java/com/kizunavi/config/JwtConfig.java`](../../backend/src/main/java/com/kizunavi/config/JwtConfig.java)

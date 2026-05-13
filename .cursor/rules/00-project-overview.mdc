@@ -1,9 +1,9 @@
 ---
-description: Product Template 全体の前提（モノレポ・プロファイル・DB・コミュニケーション）
+description: KizuNavi 全体の前提（モノレポ・プロファイル・DB・コミュニケーション）
 alwaysApply: true
 ---
 
-# Product Template — プロジェクト概要
+# KizuNavi — プロジェクト概要
 
 ## コミュニケーション
 

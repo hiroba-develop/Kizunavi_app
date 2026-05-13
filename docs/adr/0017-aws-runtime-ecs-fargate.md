@@ -2,7 +2,7 @@
 
 - Status: Deprecated（後続: [ADR-0025: AWS ランタイム（EC2 + Docker）](0025-aws-runtime-ec2-docker.md)）
 - Date: 2026-04-20
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 > **廃止理由**: 本テンプレートの運用ランタイムは **単一 EC2 + Docker** に変更された。
 

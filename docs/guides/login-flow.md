@@ -1,6 +1,6 @@
 # ログイン処理と JWT ライフサイクル ガイド
 
-この文書は、Product Template における**ログインから API 呼び出し、トークン更新、ログアウト**までの流れを説明する。セキュリティの基礎が少ない読者向けに、用語の初出では短い補足を入れる。
+この文書は、KizuNavi における**ログインから API 呼び出し、トークン更新、ログアウト**までの流れを説明する。セキュリティの基礎が少ない読者向けに、用語の初出では短い補足を入れる。
 
 - **主な技術**: Spring Security + JJWT（バックエンド）、HttpOnly Cookie でのリフレッシュ、React + Axios（フロント）
 - **設計の要約**: [ADR-0005: 認証（JWT + HttpOnly リフレッシュ Cookie）](../adr/0005-auth-jwt-cookie.md)
@@ -97,7 +97,7 @@ export const apiClient = axios.create({
 
 リフレッシュは HttpOnly Cookie に載せ、**JSON の `refreshToken` は `null` に置き換え**て返す。
 
-```42:55:backend/src/main/java/com/product/template/controller/AuthController.java
+```42:55:backend/src/main/java/com/kizunavi/controller/AuthController.java
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(
             @Valid @RequestBody LoginRequest request,
@@ -121,7 +121,7 @@ export const apiClient = axios.create({
 2. アクセス用・リフレッシュ用の **JWT をそれぞれ生成**  
 3. `saveRefreshTokenRecord` で **SHA-256 ハッシュ**を計算し `RefreshToken` エンティティを保存
 
-```54:75:backend/src/main/java/com/product/template/service/AuthService.java
+```54:75:backend/src/main/java/com/kizunavi/service/AuthService.java
     @Transactional
     public TokenResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -147,7 +147,7 @@ export const apiClient = axios.create({
     }
 ```
 
-```166:177:backend/src/main/java/com/product/template/service/AuthService.java
+```166:177:backend/src/main/java/com/kizunavi/service/AuthService.java
     private void saveRefreshTokenRecord(User user, String rawRefreshToken) {
         String hash = TokenHashUtil.sha256Hex(rawRefreshToken);
         long refreshMs = jwtConfig.getRefreshTokenExpiration();
@@ -164,7 +164,7 @@ export const apiClient = axios.create({
 
 ### 3-4. HttpOnly Cookie の属性
 
-```34:47:backend/src/main/java/com/product/template/security/CookieUtil.java
+```34:47:backend/src/main/java/com/kizunavi/security/CookieUtil.java
     public static void addRefreshTokenCookie(
             HttpServletResponse response,
             String refreshToken,
@@ -208,7 +208,7 @@ Zustand の `persist` で **`user` と `isAuthenticated` のみ**ローカルス
 - **署名**: HS256（設定の `jwt.secret` / 環境変数 `JWT_SECRET`）  
 - **アクセスとリフレッシュの違い**: 主に**有効期限**（`JwtConfig` のミリ秒設定）
 
-```82:92:backend/src/main/java/com/product/template/security/JwtTokenProvider.java
+```82:92:backend/src/main/java/com/kizunavi/security/JwtTokenProvider.java
     private String buildToken(String username, long expiration, Map<String, Object> extraClaims) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
@@ -242,7 +242,7 @@ apiClient.interceptors.request.use(
 
 ### 5-2. バックエンド: JWT フィルタとセッション方針
 
-```47:77:backend/src/main/java/com/product/template/security/JwtAuthenticationFilter.java
+```47:77:backend/src/main/java/com/kizunavi/security/JwtAuthenticationFilter.java
     protected void doFilterInternal(
         @NonNull HttpServletRequest request,
         @NonNull HttpServletResponse response,
@@ -276,7 +276,7 @@ apiClient.interceptors.request.use(
     }
 ```
 
-```70:76:backend/src/main/java/com/product/template/config/SecurityConfig.java
+```70:76:backend/src/main/java/com/kizunavi/config/SecurityConfig.java
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
@@ -313,7 +313,7 @@ apiClient.interceptors.request.use(
 
 ### 6-2. コントローラ: Cookie から取得してサービスへ
 
-```79:93:backend/src/main/java/com/product/template/controller/AuthController.java
+```79:93:backend/src/main/java/com/kizunavi/controller/AuthController.java
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refreshToken(
             HttpServletRequest request,
@@ -340,7 +340,7 @@ apiClient.interceptors.request.use(
 4. **旧行に `revoked_at` を設定**して保存  
 5. 新アクセス・新リフレッシュ JWT を発行し、**新行を INSERT**（再びハッシュのみ DB に保存）
 
-```114:150:backend/src/main/java/com/product/template/service/AuthService.java
+```114:150:backend/src/main/java/com/kizunavi/service/AuthService.java
     @Transactional
     public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -381,7 +381,7 @@ apiClient.interceptors.request.use(
     }
 ```
 
-永続化のクエリは [RefreshTokenRepository.java](../../backend/src/main/java/com/product/template/repository/RefreshTokenRepository.java) を参照。
+永続化のクエリは [RefreshTokenRepository.java](../../backend/src/main/java/com/kizunavi/repository/RefreshTokenRepository.java) を参照。
 
 ---
 
@@ -391,7 +391,7 @@ apiClient.interceptors.request.use(
 
 認証済みユーザーのメールでサービスを呼び、Cookie を削除する。
 
-```103:110:backend/src/main/java/com/product/template/controller/AuthController.java
+```103:110:backend/src/main/java/com/kizunavi/controller/AuthController.java
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -405,7 +405,7 @@ apiClient.interceptors.request.use(
 
 ### 7-2. サービス: 該当ユーザーの未失効リフレッシュを一括失効
 
-```158:164:backend/src/main/java/com/product/template/service/AuthService.java
+```158:164:backend/src/main/java/com/kizunavi/service/AuthService.java
     @Transactional
     public void logout(String email) {
         userRepository.findByEmail(email).ifPresent(user ->
@@ -417,7 +417,7 @@ apiClient.interceptors.request.use(
 
 ### 7-3. Cookie の削除
 
-```56:64:backend/src/main/java/com/product/template/security/CookieUtil.java
+```56:64:backend/src/main/java/com/kizunavi/security/CookieUtil.java
     public static void clearRefreshTokenCookie(HttpServletResponse response, boolean secure) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
                 .httpOnly(true)
@@ -512,13 +512,13 @@ sequenceDiagram
 | [ADR-0023: ログイン機能 DB 設計（小規模向け）](../adr/0023-login-db-schema.md) |
 | [ログイン機能 DB 定義書](../db/login-schema.md) |
 | [login_schema.sql](../../backend/src/main/resources/db/oracle/login_schema.sql) |
-| [AuthController.java](../../backend/src/main/java/com/product/template/controller/AuthController.java) |
-| [AuthService.java](../../backend/src/main/java/com/product/template/service/AuthService.java) |
-| [RefreshTokenRepository.java](../../backend/src/main/java/com/product/template/repository/RefreshTokenRepository.java) |
-| [JwtTokenProvider.java](../../backend/src/main/java/com/product/template/security/JwtTokenProvider.java) |
-| [JwtAuthenticationFilter.java](../../backend/src/main/java/com/product/template/security/JwtAuthenticationFilter.java) |
-| [CookieUtil.java](../../backend/src/main/java/com/product/template/security/CookieUtil.java) |
-| [SecurityConfig.java](../../backend/src/main/java/com/product/template/config/SecurityConfig.java) |
+| [AuthController.java](../../backend/src/main/java/com/kizunavi/controller/AuthController.java) |
+| [AuthService.java](../../backend/src/main/java/com/kizunavi/service/AuthService.java) |
+| [RefreshTokenRepository.java](../../backend/src/main/java/com/kizunavi/repository/RefreshTokenRepository.java) |
+| [JwtTokenProvider.java](../../backend/src/main/java/com/kizunavi/security/JwtTokenProvider.java) |
+| [JwtAuthenticationFilter.java](../../backend/src/main/java/com/kizunavi/security/JwtAuthenticationFilter.java) |
+| [CookieUtil.java](../../backend/src/main/java/com/kizunavi/security/CookieUtil.java) |
+| [SecurityConfig.java](../../backend/src/main/java/com/kizunavi/config/SecurityConfig.java) |
 | [application.yml](../../backend/src/main/resources/application.yml) |
 | [useAuth.ts](../../frontend/src/hooks/useAuth.ts) |
 | [axios.ts](../../frontend/src/lib/axios.ts) |

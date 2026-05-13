@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useSignup } from '@/hooks/useAuth'
 import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 /** 新規登録フォーム用 Zod スキーマ（パスワード確認の一致チェック付き）。 */
 const signupSchema = z
@@ -26,11 +27,23 @@ const signupSchema = z
 /** サインアップフォームの入力値型。 */
 type SignupFormData = z.infer<typeof signupSchema>
 
+type SignupFormProps = {
+  /** `brand`: ログイン画面と揃えた KizuNavi 用スタイル */
+  variant?: 'default' | 'brand'
+}
+
+const inputBrandClass =
+  'h-11 rounded-lg border-sky-200/90 bg-sky-50 px-4 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:border-sky-400 focus-visible:ring-sky-400'
+
+const labelBrandClass =
+  'block w-full text-center text-sm font-medium text-gray-700'
+
 /**
  * 名前・メール・パスワード入力と `useSignup` を束ねる登録フォーム。
  */
-export function SignupForm() {
+export function SignupForm({ variant = 'default' }: SignupFormProps) {
   const signup = useSignup()
+  const isBrand = variant === 'brand'
 
   const {
     register,
@@ -54,63 +67,128 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">名前</Label>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className={cn('space-y-4', isBrand && 'space-y-6')}
+    >
+      <div className={cn('space-y-2', isBrand && 'text-center')}>
+        <Label htmlFor="name" className={cn(isBrand && labelBrandClass)}>
+          名前
+        </Label>
         <Input
           id="name"
           type="text"
           placeholder="山田 太郎"
+          autoComplete="name"
+          className={cn(isBrand && inputBrandClass)}
           {...register('name')}
         />
         {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
+          <p
+            className={cn(
+              'text-sm text-red-500',
+              isBrand && 'text-left sm:text-center'
+            )}
+          >
+            {errors.name.message}
+          </p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email">メールアドレス</Label>
+      <div className={cn('space-y-2', isBrand && 'text-center')}>
+        <Label htmlFor="email" className={cn(isBrand && labelBrandClass)}>
+          メールアドレス
+        </Label>
         <Input
           id="email"
           type="email"
-          placeholder="email@example.com"
+          placeholder={
+            isBrand ? 'kizunavi@hiroba1931.co.jp' : 'email@example.com'
+          }
+          autoComplete="email"
+          className={cn(isBrand && inputBrandClass)}
           {...register('email')}
         />
         {errors.email && (
-          <p className="text-sm text-red-500">{errors.email.message}</p>
+          <p
+            className={cn(
+              'text-sm text-red-500',
+              isBrand && 'text-left sm:text-center'
+            )}
+          >
+            {errors.email.message}
+          </p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">パスワード</Label>
+      <div className={cn('space-y-2', isBrand && 'text-center')}>
+        <Label htmlFor="password" className={cn(isBrand && labelBrandClass)}>
+          パスワード
+        </Label>
         <Input
           id="password"
           type="password"
           placeholder="8文字以上のパスワード"
+          autoComplete="new-password"
+          className={cn(isBrand && inputBrandClass)}
           {...register('password')}
         />
         {errors.password && (
-          <p className="text-sm text-red-500">{errors.password.message}</p>
+          <p
+            className={cn(
+              'text-sm text-red-500',
+              isBrand && 'text-left sm:text-center'
+            )}
+          >
+            {errors.password.message}
+          </p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">パスワード確認</Label>
+      <div className={cn('space-y-2', isBrand && 'text-center')}>
+        <Label
+          htmlFor="confirmPassword"
+          className={cn(isBrand && labelBrandClass)}
+        >
+          パスワード確認
+        </Label>
         <Input
           id="confirmPassword"
           type="password"
           placeholder="パスワードを再入力"
+          autoComplete="new-password"
+          className={cn(isBrand && inputBrandClass)}
           {...register('confirmPassword')}
         />
         {errors.confirmPassword && (
-          <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+          <p
+            className={cn(
+              'text-sm text-red-500',
+              isBrand && 'text-left sm:text-center'
+            )}
+          >
+            {errors.confirmPassword.message}
+          </p>
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={signup.isPending}>
-        {signup.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        アカウント作成
-      </Button>
+      {isBrand ? (
+        <button
+          type="submit"
+          disabled={signup.isPending}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-sky-500 text-base font-semibold text-white shadow-sm transition-colors hover:bg-sky-600 disabled:pointer-events-none disabled:opacity-50"
+        >
+          {signup.isPending && (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          )}
+          アカウント作成
+        </button>
+      ) : (
+        <Button type="submit" className="w-full" disabled={signup.isPending}>
+          {signup.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          アカウント作成
+        </Button>
+      )}
     </form>
   )
 }

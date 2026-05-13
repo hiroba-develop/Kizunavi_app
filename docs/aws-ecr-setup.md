@@ -4,7 +4,7 @@
 
 > **想定読者**: ソフトウェアエンジニアとして開発経験はあるが、AWS のインフラ経験は浅い／急遽インフラ担当になった方。各章で **用語メモ** と **なぜその設定が必要か** を補足しています。
 
-> **本書の到達点**: `product-template/backend` と `product-template/frontend` の 2 リポジトリを東京リージョンに用意し、Semver タグと `stg` / `prod` 等の可変タグで運用できること。CI は **長期アクセスキーを使わず** GitHub OIDC で AWS に接続します。
+> **本書の到達点**: `kizuNavi/backend` と `kizuNavi/frontend` の 2 リポジトリを東京リージョンに用意し、Semver タグと `stg` / `prod` 等の可変タグで運用できること。CI は **長期アクセスキーを使わず** GitHub OIDC で AWS に接続します。
 
 ## 目次
 
@@ -177,7 +177,7 @@ flowchart LR
   dev[開発者]
   tag["git_tag_vX.Y.Z"]
   gha[GitHub_Actions_OIDC]
-  ecr[ECR_product-template]
+  ecr[ECR_kizuNavi]
   ec2_stg[EC2_stg]
   ec2_prod[EC2_prod]
   dev --> tag --> gha --> ecr
@@ -189,7 +189,7 @@ flowchart LR
 
 | 項目 | 方針 |
 |------|------|
-| リポジトリ分割 | サービス単位: `product-template/backend` と `product-template/frontend` |
+| リポジトリ分割 | サービス単位: `kizuNavi/backend` と `kizuNavi/frontend` |
 | アカウント / 環境 | **単一 AWS アカウント**内で **stg / prod のみ** を対象（dev 用 ECR は本書では作成しない想定） |
 | リージョン | `ap-northeast-1`（東京）単独 |
 | 記述スタイル | **コンソール手順を主**、IAM/OIDC は **CLI** で再現可能に |
@@ -233,8 +233,8 @@ flowchart LR
 | `<REGION>` | `ap-northeast-1` | 東京 |
 | `<GITHUB_ORG>` | `your-org` | GitHub の組織またはユーザー名 |
 | `<GITHUB_REPO>` | `your-product` | リポジトリ名 |
-| `<ECR_REPO_BACKEND>` | `product-template/backend` | 本書の命名規則 |
-| `<ECR_REPO_FRONTEND>` | `product-template/frontend` | 同上 |
+| `<ECR_REPO_BACKEND>` | `kizuNavi/backend` | 本書の命名規則 |
+| `<ECR_REPO_FRONTEND>` | `kizuNavi/frontend` | 同上 |
 | `<EC2_INSTANCE_PROFILE_ROLE_NAME>` | `EC2-App-InstanceProfile` | ECR pull 用にリポジトリポリシーで Principal に指定する **EC2 インスタンスプロファイルのロール名**（環境により名前は異なる） |
 | `<GITHUB_ACTIONS_ECR_ROLE_NAME>` | `GitHubActionsECRPushRole` | 新規に作成する OIDC 用ロール名（任意） |
 
@@ -256,7 +256,7 @@ aws sts get-caller-identity
 
 ## 5. AWS コンソールでのリポジトリ作成
 
-> **この章のゴール**: `product-template/backend` と `product-template/frontend` の **プライベートリポジトリ**を東京リージョンに作成すること。
+> **この章のゴール**: `kizuNavi/backend` と `kizuNavi/frontend` の **プライベートリポジトリ**を東京リージョンに作成すること。
 
 ### 5.1 操作手順（コンソール）
 
@@ -267,12 +267,12 @@ aws sts get-caller-identity
 5. **「リポジトリを作成」** をクリック。
 6. **設定例（backend）**:
    - **可視性設定**: **プライベート**
-   - **リポジトリ名**: `product-template/backend`
+   - **リポジトリ名**: `kizuNavi/backend`
    - **タグの変更可能性**: **変更可能**（可変タグ `stg`/`prod` を使うため）
    - **イメージスキャン設定**: **プッシュ時にスキャン**（Basic scanning）
    - **暗号化設定**: **AES-256（デフォルト）**
 7. **「作成」** をクリック。
-8. **frontend** についても同様に **`product-template/frontend`** で繰り返す。
+8. **frontend** についても同様に **`kizuNavi/frontend`** で繰り返す。
 
 ### 5.2 画面項目の意味（用語メモ）
 
@@ -284,7 +284,7 @@ aws sts get-caller-identity
 
 ### 5.3 コラム — なぜ可変タグか
 
-`docker-compose.yml` でイメージを `...amazonaws.com/product-template/backend:stg` のように書いておけば、**検証環境へのデプロイはタグの付け替え + `docker compose pull && up -d`** で済む場合があります。一方で **上書きミス**のリスクもあるため、[§11 日常運用フロー](#11-日常運用フロー) で **ダイジェスト確認**を推奨しています。
+`docker-compose.yml` でイメージを `...amazonaws.com/kizuNavi/backend:stg` のように書いておけば、**検証環境へのデプロイはタグの付け替え + `docker compose pull && up -d`** で済む場合があります。一方で **上書きミス**のリスクもあるため、[§11 日常運用フロー](#11-日常運用フロー) で **ダイジェスト確認**を推奨しています。
 
 ---
 
@@ -298,7 +298,7 @@ aws sts get-caller-identity
 
 ### 6.2 コンソールでの設定手順
 
-1. ECR → **リポジトリ** → 対象（例: `product-template/backend`）を開く。
+1. ECR → **リポジトリ** → 対象（例: `kizuNavi/backend`）を開く。
 2. 左または上部メニューから **「ライフサイクルポリシー」** を開く。
 3. **「作成」** でルールを JSON で編集するか、ウィザードで近似設定する。
 4. 保存前に **プレビュー**（対象になるイメージの確認）があれば必ず実行する。
@@ -508,7 +508,7 @@ aws iam create-open-id-connect-provider \
 aws iam create-role \
   --role-name <GITHUB_ACTIONS_ECR_ROLE_NAME> \
   --assume-role-policy-document file://trust.json \
-  --description "GitHub Actions OIDC -> ECR push for product-template"
+  --description "GitHub Actions OIDC -> ECR push for kizuNavi"
 ```
 
 ### 8.5 許可ポリシー（ECR push 用）の例
@@ -538,8 +538,8 @@ aws iam create-role \
         "ecr:CompleteLayerUpload"
       ],
       "Resource": [
-        "arn:aws:ecr:<REGION>:<AWS_ACCOUNT_ID>:repository/product-template/backend",
-        "arn:aws:ecr:<REGION>:<AWS_ACCOUNT_ID>:repository/product-template/frontend"
+        "arn:aws:ecr:<REGION>:<AWS_ACCOUNT_ID>:repository/kizuNavi/backend",
+        "arn:aws:ecr:<REGION>:<AWS_ACCOUNT_ID>:repository/kizuNavi/frontend"
       ]
     }
   ]
@@ -551,7 +551,7 @@ aws iam create-role \
 ```bash
 aws iam put-role-policy \
   --role-name <GITHUB_ACTIONS_ECR_ROLE_NAME> \
-  --policy-name ECRPushProductTemplate \
+  --policy-name ECRPushKizuNavi \
   --policy-document file://ecr-push-policy.json
 ```
 
@@ -609,9 +609,9 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ env.ECR_REGISTRY }}/product-template/backend:${{ steps.meta.outputs.VERSION }}
-            ${{ env.ECR_REGISTRY }}/product-template/backend:latest
-            ${{ env.ECR_REGISTRY }}/product-template/backend:stg
+            ${{ env.ECR_REGISTRY }}/kizuNavi/backend:${{ steps.meta.outputs.VERSION }}
+            ${{ env.ECR_REGISTRY }}/kizuNavi/backend:latest
+            ${{ env.ECR_REGISTRY }}/kizuNavi/backend:stg
 ```
 
 **解説**:
@@ -656,7 +656,7 @@ jobs:
 例（backend の stg）:
 
 ```
-123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/product-template/backend:stg
+123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/kizuNavi/backend:stg
 ```
 
 ### 10.2 認証の考え方（EC2）
@@ -705,7 +705,7 @@ flowchart TD
 
 ```bash
 # 例: v1.2.3 のマニフェストを取得し、prod タグとして登録し直す
-REPO="product-template/backend"
+REPO="kizuNavi/backend"
 REGION="ap-northeast-1"
 TAG_FROM="v1.2.3"
 TAG_TO="prod"

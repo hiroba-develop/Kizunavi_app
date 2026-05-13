@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-04-20
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 ## Context
 
@@ -15,7 +15,7 @@
 | ボイラープレート | **Lombok** | `compileOnly` + `annotationProcessor` |
 | 入力検証 | **spring-boot-starter-validation** | Jakarta Bean Validation |
 | ヘルスチェック | **spring-boot-starter-actuator** | `/actuator/health`（Docker / ALB ヘルスに利用） |
-| メール | **AWS SDK v2 SES** | **`dev` / `prod` いずれも SES を有効化**（[`application-dev.yml`](../../backend/src/main/resources/application-dev.yml) 等）。認証情報は `.env` または EC2 インスタンスプロファイル / Secrets 経由（[`EmailService`](../../backend/src/main/java/com/product/template/service/EmailService.java)） |
+| メール | **AWS SDK v2 SES** | **`dev` / `prod` いずれも SES を有効化**（[`application-dev.yml`](../../backend/src/main/resources/application-dev.yml) 等）。認証情報は `.env` または EC2 インスタンスプロファイル / Secrets 経由（[`EmailService`](../../backend/src/main/java/com/kizunavi/service/EmailService.java)） |
 | OpenAPI Nullable | **jackson-databind-nullable** | 生成コード向け |
 
 ## Consequences

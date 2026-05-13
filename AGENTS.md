@@ -1,4 +1,4 @@
-# Agent 向けガイド（Product Template）
+# Agent 向けガイド（KizuNavi）
 
 このリポジトリで作業する AI / エージェントは、次を守ってください。
 

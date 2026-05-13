@@ -1,4 +1,4 @@
-# Product Template - Backend
+# KizuNavi - Backend
 
 Spring Boot 3.4 を使用したREST APIバックエンドプロジェクトです。
 
@@ -154,8 +154,8 @@ DEVTOOLS_RESTART_ENABLED=false ./gradlew bootRun
 ## プロジェクト構成
 
 ```
-src/main/java/com/product/template/
-├── ProductTemplateApplication.java   # メインクラス
+src/main/java/com/kizunavi/
+├── KizuNaviApplication.java   # メインクラス
 ├── config/                           # 設定クラス
 ├── controller/                       # REST コントローラー
 ├── dto/                              # データ転送オブジェクト
@@ -171,8 +171,8 @@ src/main/java/com/product/template/
 単体で起動する場合（**ルートの `.env` をマウントまたは `--env-file`** で RDS / SES を渡すこと）:
 
 ```bash
-docker build -t product-template-backend .
-docker run -p 8080:8080 --env-file ../.env product-template-backend
+docker build -t kizuNavi-backend .
+docker run -p 8080:8080 --env-file ../.env kizuNavi-backend
 ```
 
 フロントエンドと一緒に起動する場合はプロジェクトルートで:

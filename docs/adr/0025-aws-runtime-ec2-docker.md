@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-07
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 ## Context
 

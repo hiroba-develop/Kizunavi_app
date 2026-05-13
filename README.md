@@ -1,4 +1,4 @@
-# Product Template
+# KizuNavi
 
 Spring Boot + React フルスタックテンプレートプロジェクトです。
 

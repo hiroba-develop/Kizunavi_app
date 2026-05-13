@@ -1,44 +1,41 @@
 import { Link } from 'react-router-dom'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { SignupForm } from '@/components/auth/SignupForm'
 
 /**
- * 新規登録画面。サインアップフォームとログイン画面へのリンクを表示する。
+ * 新規登録画面（ログイン画面と同一トンマナのブランドレイアウト）。
  */
 export function SignupPage() {
   return (
-    <>
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-primary">Product Template</h1>
-        <p className="mt-2 text-gray-600">新規アカウント作成</p>
+    <div className="flex flex-col items-center">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <img
+          src="/KizuNavi_logo.png"
+          alt="KizuNavi"
+          className="mx-auto h-auto w-full max-w-[min(100%,320px)] object-contain drop-shadow-sm sm:max-w-sm"
+        />
+        <p className="mt-5 text-sm font-medium text-gray-600">
+          エンゲージメント分析システム
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          社員のエンゲージメント向上を支援
+        </p>
+        <p className="mt-4 text-sm font-medium text-gray-700">
+          新規アカウント作成
+        </p>
       </div>
 
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>新規登録</CardTitle>
-          <CardDescription>
-            必要な情報を入力してアカウントを作成してください
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SignupForm />
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-600">
-            既にアカウントをお持ちの方は{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              ログイン
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </>
+      <div className="w-full rounded-2xl border border-sky-100 bg-white p-8 shadow-lg shadow-sky-200/60 sm:p-10">
+        <SignupForm variant="brand" />
+        <p className="mt-6 text-center text-sm text-gray-500">
+          既にアカウントをお持ちの方は{' '}
+          <Link
+            to="/login"
+            className="font-medium text-sky-500 hover:text-sky-600 hover:underline"
+          >
+            ログイン
+          </Link>
+        </p>
+      </div>
+    </div>
   )
 }

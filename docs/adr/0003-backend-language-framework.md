@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-04-20
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 ## Context
 
@@ -27,4 +27,4 @@
 ## References
 
 - [`backend/build.gradle`](../../backend/build.gradle)
-- [`backend/src/main/java/com/product/template/ProductTemplateApplication.java`](../../backend/src/main/java/com/product/template/ProductTemplateApplication.java)
+- [`backend/src/main/java/com/kizunavi/KizuNaviApplication.java`](../../backend/src/main/java/com/kizunavi/KizuNaviApplication.java)

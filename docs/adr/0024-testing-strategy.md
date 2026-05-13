@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-04-24
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 ## Context
 
@@ -24,8 +24,8 @@
    - バックエンド: `service` / `util` の業務ロジック
    - フロントエンド: `lib` の純粋関数、`hooks`、`store`
 6. 生成コードはテスト対象およびカバレッジ集計対象から除外する。
-   - `backend/src/main/java/com/product/template/dto/**`
-   - `backend/src/main/java/com/product/template/controller/*Api.java`
+   - `backend/src/main/java/com/kizunavi/dto/**`
+   - `backend/src/main/java/com/kizunavi/controller/*Api.java`
    - `frontend/src/api/**`
 
 ## Consequences

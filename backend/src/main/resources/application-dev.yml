@@ -36,6 +36,6 @@ aws:
 
 logging:
   level:
-    com.product.template: ${LOG_LEVEL:DEBUG}
+    com.kizunavi: ${LOG_LEVEL:DEBUG}
     org.hibernate.SQL: ${HIBERNATE_SQL_LOG:DEBUG}
     org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_BIND_LOG:WARN}

@@ -3,9 +3,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: product-template-backend
+    container_name: kizuNavi-backend
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "${BACKEND_PORT:-8082}:8082"
     environment:
       # プロファイル: dev（自PC Docker / dev EC2 共通）または prod（prod EC2）
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
@@ -24,10 +24,10 @@ services:
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY:-}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY:-}
       AWS_SES_FROM_EMAIL: ${AWS_SES_FROM_EMAIL:-}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5173}}
-      APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL:-http://localhost:${FRONTEND_PORT:-5173}}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5175}}
+      APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL:-http://localhost:${FRONTEND_PORT:-5175}}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 3s
       start_period: 60s
@@ -38,11 +38,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: product-template-frontend
+    container_name: kizuNavi-frontend
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "${FRONTEND_PORT:-5175}:5175"
     environment:
-      VITE_PROXY_TARGET: ${VITE_PROXY_TARGET:-http://backend:8080}
+      VITE_PROXY_TARGET: ${VITE_PROXY_TARGET:-http://backend:8082}
     depends_on:
       backend:
         condition: service_started

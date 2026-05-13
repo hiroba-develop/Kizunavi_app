@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-本ディレクトリには、Product Template の**アーキテクチャ上の重要な意思決定**を記録した ADR を置きます。
+本ディレクトリには、KizuNavi の**アーキテクチャ上の重要な意思決定**を記録した ADR を置きます。
 
 ## 目的
 

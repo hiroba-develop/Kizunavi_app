@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## スタックとパッケージ
 
-- Java 21、Spring Boot 3.4.x。ベースパッケージは `com.product.template`。
+- Java 21、Spring Boot 3.4.x。ベースパッケージは `com.kizunavi`。
 - Lombok を活用する（例: `@RequiredArgsConstructor` でコンストラクタ注入、`@Slf4j`）。
 
 ## レイヤリング
@@ -24,7 +24,7 @@ alwaysApply: false
 ## 例外とレスポンス
 
 - 業務エラーは `ApiException` またはそのサブクラスを `throw` する。コントローラで握りつぶさない。
-- HTTP 本文のエラー形は `ErrorResponse` に統一。ハンドラは [GlobalExceptionHandler](../../backend/src/main/java/com/product/template/exception/GlobalExceptionHandler.java) を踏襲する。
+- HTTP 本文のエラー形は `ErrorResponse` に統一。ハンドラは [GlobalExceptionHandler](../../backend/src/main/java/com/kizunavi/exception/GlobalExceptionHandler.java) を踏襲する。
 - ユーザー向けメッセージは **日本語** で分かりやすく。
 
 ## バリデーションと認可

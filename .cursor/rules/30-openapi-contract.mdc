@@ -1,6 +1,6 @@
 ---
 description: OpenAPI 契約（swagger.yaml）と生成コードの扱い
-globs: swagger.yaml,frontend/src/api/**,backend/src/main/java/com/product/template/controller/*Api.java
+globs: swagger.yaml,frontend/src/api/**,backend/src/main/java/com/kizunavi/controller/*Api.java
 alwaysApply: false
 ---
 

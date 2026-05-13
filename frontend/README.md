@@ -1,4 +1,4 @@
-# Product Template - Frontend
+# KizuNavi - Frontend
 
 React + TypeScript + Vite を使用したフロントエンドプロジェクトです。
 
@@ -126,8 +126,8 @@ npx shadcn-ui@latest add [component-name]
 単体で起動する場合:
 
 ```bash
-docker build -t product-template-frontend .
-docker run -p 5173:5173 product-template-frontend
+docker build -t kizunavi-frontend .
+docker run -p 5173:5173 kizunavi-frontend
 ```
 
 バックエンドと一緒に起動する場合はプロジェクトルートで:

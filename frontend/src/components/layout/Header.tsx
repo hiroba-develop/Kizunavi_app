@@ -44,7 +44,7 @@ export function Header() {
           </Button>
           <Link to="/dashboard" className="flex items-center gap-2">
             <span className="text-xl font-bold text-primary">
-              Product Template
+              KizuNavi
             </span>
           </Link>
         </div>

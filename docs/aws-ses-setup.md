@@ -231,7 +231,7 @@ aws:
 
 ### 3.4 EmailService の動作説明
 
-`backend/src/main/java/com/product/template/service/EmailService.java` は以下のメソッドを提供します：
+`backend/src/main/java/com/kizunavi/service/EmailService.java` は以下のメソッドを提供します：
 
 | メソッド | 用途 | 引数 |
 |----------|------|------|

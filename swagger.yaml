@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
-  title: Product Template API
-  description: Product Template アプリケーションの REST API 仕様
+  title: KizuNavi API
+  description: KizuNavi アプリケーションの REST API 仕様
   version: 1.0.0
   contact:
-    name: Product Template Team
+    name: KizuNavi Team
 
 servers:
   - url: http://localhost:8080

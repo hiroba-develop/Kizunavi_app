@@ -27,6 +27,6 @@ management:
 logging:
   level:
     root: WARN
-    com.product.template: ${LOG_LEVEL:INFO}
+    com.kizunavi: ${LOG_LEVEL:INFO}
     org.springframework.security: WARN
     org.hibernate.SQL: ${HIBERNATE_SQL_LOG:WARN}

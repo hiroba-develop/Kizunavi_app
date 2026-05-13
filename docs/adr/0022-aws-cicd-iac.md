@@ -2,7 +2,7 @@
 
 - Status: Deprecated（後続: [ADR-0026: CI/CD 方針（GitHub Actions / ECR、IaC は見送り）](0026-cicd-without-iac.md)）
 - Date: 2026-04-20
-- Deciders: Product Template チーム
+- Deciders: KizuNavi チーム
 
 > **廃止理由**: IaC（Terraform）の導入は見送りとなり、CI/CD とデプロイの記録は [ADR-0026](0026-cicd-without-iac.md) に集約した。
 

@@ -21,8 +21,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:5173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:5175/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-EXPOSE 5173
+EXPOSE 5175
 
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5175"]

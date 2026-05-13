@@ -105,9 +105,9 @@ npm run test:coverage
 
 次の順番で読むと理解しやすいです。
 
-1. [backend/src/test/java/com/product/template/util/TokenHashUtilTest.java](../../backend/src/test/java/com/product/template/util/TokenHashUtilTest.java)
+1. [backend/src/test/java/com/kizunavi/util/TokenHashUtilTest.java](../../backend/src/test/java/com/kizunavi/util/TokenHashUtilTest.java)
 2. [frontend/src/lib/__tests__/utils.test.ts](../../frontend/src/lib/__tests__/utils.test.ts)
-3. [backend/src/test/java/com/product/template/service/UserServiceTest.java](../../backend/src/test/java/com/product/template/service/UserServiceTest.java)
+3. [backend/src/test/java/com/kizunavi/service/UserServiceTest.java](../../backend/src/test/java/com/kizunavi/service/UserServiceTest.java)
 4. [frontend/src/store/__tests__/useAuthStore.test.ts](../../frontend/src/store/__tests__/useAuthStore.test.ts)
 5. [frontend/src/hooks/__tests__/useUser.test.tsx](../../frontend/src/hooks/__tests__/useUser.test.tsx)
 

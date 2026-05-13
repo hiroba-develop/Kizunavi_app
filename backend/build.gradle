@@ -6,7 +6,7 @@ plugins {
     id 'jacoco'
 }
 
-group = 'com.product'
+group = 'com.kizunavi'
 version = '0.0.1-SNAPSHOT'
 
 java {
@@ -83,8 +83,8 @@ tasks.named('jacocoTestReport') {
     }
     classDirectories.setFrom(
         files(sourceSets.main.output.asFileTree.matching {
-            exclude 'com/product/template/dto/**'
-            exclude 'com/product/template/controller/*Api.class'
+            exclude 'com/kizunavi/dto/**'
+            exclude 'com/kizunavi/controller/*Api.class'
         })
     )
 }
@@ -94,8 +94,8 @@ openApiGenerate {
     inputSpec = "${rootDir}/../swagger.yaml"
     outputDir = "${buildDir}/generated-sources/openapi"
 
-    apiPackage = "com.product.template.controller"
-    modelPackage = "com.product.template.dto"
+    apiPackage = "com.kizunavi.controller"
+    modelPackage = "com.kizunavi.dto"
 
     configOptions = [
         "dateLibrary"             : "java8-localdatetime",

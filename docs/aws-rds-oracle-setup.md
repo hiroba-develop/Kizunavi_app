@@ -152,7 +152,7 @@ spring:
     password: ${DB_PASSWORD:template_app_pass0426}              # ← DB_PASSWORD で上書き
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
-      pool-name: ProductTemplateHikariCP
+      pool-name: KizuNaviHikariCP
       maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}              # ← 必要に応じて調整
       minimum-idle: ${HIKARI_MIN_IDLE:5}
       idle-timeout: ${HIKARI_IDLE_TIMEOUT:300000}
