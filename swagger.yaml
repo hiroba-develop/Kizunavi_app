@@ -12,539 +12,863 @@ servers:
   - url: https://api.example.com
     description: 本番サーバー
 
+security:
+  - bearerAuth: []
+
 tags:
-  - name: Auth
-    description: 認証関連API
-  - name: Users
-    description: ユーザー管理API
+  - name: auth
+    description: 認証・パスワード管理
+  - name: dashboard
+    description: ダッシュボード
+  - name: employees
+    description: 従業員登録画面（従業員・部門・課・役職）
+  - name: surveys
+    description: サーベイ管理画面
+  - name: survey-answer
+    description: サーベイ実施画面
 
 paths:
+
+  # ----------------------------------------
+  # 認証
+  # ----------------------------------------
   /api/auth/login:
     post:
       tags:
-        - Auth
-      summary: ログイン
-      description: メールアドレスとパスワードで認証し、アクセストークンとリフレッシュトークンを取得する
+        - auth
       operationId: login
+      summary: ログイン
+      description: メールアドレスとパスワードで認証し、アクセストークンを取得する。
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: '#/components/schemas/LoginRequest'
       responses:
-        "200":
-          description: 認証成功
+        '200':
+          description: ログイン成功
+          headers:
+            Set-Cookie:
+              description: refreshToken（HttpOnly; Secure; SameSite=Strict）
+              schema:
+                type: string
+                example: "refreshToken=eyJhbGci...; HttpOnly; Secure; SameSite=Strict"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TokenResponse"
-        "400":
-          description: バリデーションエラー
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          description: アカウントロック中
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: 認証失敗（メールアドレスまたはパスワードが不正）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /api/auth/signup:
-    post:
-      tags:
-        - Auth
-      summary: ユーザー登録
-      description: 新規ユーザーを登録する
-      operationId: signup
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SignupRequest"
-      responses:
-        "201":
-          description: ユーザー登録成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserResponse"
-        "400":
-          description: バリデーションエラー
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: メールアドレスが既に登録済み
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /api/auth/refresh:
-    post:
-      tags:
-        - Auth
-      summary: トークンリフレッシュ
-      description: リフレッシュトークンを使用して新しいアクセストークンを取得する
-      operationId: refreshToken
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefreshTokenRequest"
-      responses:
-        "200":
-          description: トークンリフレッシュ成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TokenResponse"
-        "400":
-          description: バリデーションエラー
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: リフレッシュトークンが無効または期限切れ
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/auth/logout:
     post:
       tags:
-        - Auth
-      summary: ログアウト
-      description: 現在のユーザーのリフレッシュトークンを無効化する
+        - auth
       operationId: logout
-      security:
-        - bearerAuth: []
-      responses:
-        "204":
-          description: ログアウト成功
-        "401":
-          description: 未認証
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /api/users/me:
-    get:
-      tags:
-        - Users
-      summary: ログインユーザー情報取得
-      description: 認証済みユーザー自身の情報を取得する
-      operationId: getCurrentUser
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: 取得成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserResponse"
-        "401":
-          description: 未認証
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    put:
-      tags:
-        - Users
-      summary: ログインユーザー情報更新
-      description: 認証済みユーザー自身の情報を更新する
-      operationId: updateCurrentUser
-      security:
-        - bearerAuth: []
+      summary: ログアウト
+      description: リフレッシュトークンを失効させる。アクセストークンはステートレスのためサーバー側での無効化は不要。
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateUserRequest"
+              $ref: '#/components/schemas/LogoutRequest'
       responses:
-        "200":
+        '200':
+          description: ログアウト成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - auth
+      operationId: refreshToken
+      summary: トークンリフレッシュ
+      description: |
+        HttpOnly CookieのrefreshTokenを使って新しいアクセストークンを発行する。
+        refreshTokenはブラウザが自動送信するためリクエストボディへの指定は不要。
+        ローテーション処理により旧refreshTokenは失効し、新しいrefreshTokenがSet-Cookieで返される。
+      security: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
+            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: リフレッシュトークン（HttpOnly Cookieとしてブラウザが自動送信）
+      responses:
+        '200':
+          description: トークン発行成功
+          headers:
+            Set-Cookie:
+              description: 新しいrefreshToken（HttpOnly; Secure; SameSite=Strict）
+              schema:
+                type: string
+                example: "refreshToken=eyJhbGci...; HttpOnly; Secure; SameSite=Strict"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/password/forgot:
+    post:
+      tags:
+        - auth
+      operationId: forgotPassword
+      summary: パスワード再発行メール送信
+      description: |
+        指定メールアドレス宛にパスワードリセット用URLを送信する。
+        セキュリティのため、メールアドレスが存在しない場合も同じレスポンスを返す。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: 送信完了（メールアドレス不存在の場合も同じレスポンス）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleStatusResponse'
+
+  /api/auth/password/reset/verify/{token}:
+    get:
+      tags:
+        - auth
+      operationId: verifyResetToken
+      summary: パスワードリセットトークン検証
+      description: メールのリンククリック時に呼び出し、トークンの有効性を検証する。
+      security: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            example: a1b2c3d4e5f6789012345678901234567890abcd
+          description: リセットトークン（PASSWORD_RESET_TOKENS.tokenHashの元値）
+      responses:
+        '200':
+          description: 検証結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetVerifyResponse'
+
+  /api/auth/password/reset:
+    put:
+      tags:
+        - auth
+      operationId: resetPassword
+      summary: パスワード再設定
+      description: トークンを検証し、新しいパスワードを設定する。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: パスワード更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/firstlogin:
+    put:
+      tags:
+        - auth
+      operationId: firstLogin
+      summary: 初回パスワード設定
+      description: |
+        仮パスワードを検証し、新しいパスワードを設定する。
+        【前提】本APIはtempPassword（仮パスワード）をRequest Bodyに含むため、HTTPS必須。HTTP通信は許可しないこと。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirstLoginRequest'
+      responses:
+        '200':
+          description: パスワード設定成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ----------------------------------------
+  # ダッシュボード
+  # ----------------------------------------
+  /api/dashboard/list:
+    get:
+      tags:
+        - dashboard
+      operationId: getDashboardList
+      summary: サーベイ一覧取得
+      description: |
+        全サーベイ一覧を取得する。サイドバー・ドロップダウンのサーベイ切替用。
+        customerIdはJWTから取得するためクエリパラメータへの指定は不要。
+        SURVEY_DETAILSをcustomerIdで絞り込み、createdAt降順で返却。
+        サーベイが0件の場合はsurveysを空配列で返す。
+      responses:
+        '200':
+          description: サーベイ一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/dashboard/{surveyId}:
+    get:
+      tags:
+        - dashboard
+      operationId: getDashboard
+      summary: ダッシュボード取得
+      description: |
+        サーベイ一覧・サマリー・従業員バリュー分布を一括取得する。
+        surveyId省略時はSURVEY_DETAILSのcreatedAt降順で最新サーベイを自動取得。
+        customerIdはJWTから取得するためクエリパラメータへの指定は不要。
+        ※レスポンスが大きい場合は将来的にAPIの分離を検討（2026/05/13）
+      parameters:
+        - in: path
+          name: surveyId
+          required: true
+          schema:
+            type: string
+            example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+          description: サーベイID（省略時は最新サーベイを自動取得）
+      responses:
+        '200':
+          description: ダッシュボードデータ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ----------------------------------------
+  # 従業員
+  # ----------------------------------------
+  /api/employees:
+    get:
+      tags:
+        - employees
+      operationId: getEmployees
+      summary: 従業員一覧取得
+      description: |
+        customerIdはJWTから取得。
+        USERS.enabled=0（論理削除済み）の従業員は返さない。
+      responses:
+        '200':
+          description: 従業員一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - employees
+      operationId: createEmployee
+      summary: 従業員登録
+      description: |
+        EMPLOYEESとUSERSを同一トランザクションで登録する。
+        kizunaLevel=2（役員）はdivisionId / sectionId=NULLで登録。
+        登録完了後に仮パスワードをメールで従業員に送信。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+      responses:
+        '201':
+          description: 従業員登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateEmployeeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: メールアドレス重複
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/employees/{employeeId}:
+    put:
+      tags:
+        - employees
+      operationId: updateEmployee
+      summary: 従業員情報更新
+      description: |
+        EMPLOYEESとUSERSを同一トランザクションで更新。
+        employeeId + customerIdで対象を特定。
+        kizunaLevel=2に変更する場合はdivisionId / sectionId=NULLにセット。
+      parameters:
+        - $ref: '#/components/parameters/employeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeRequest'
+      responses:
+        '200':
           description: 更新成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
-        "400":
-          description: バリデーションエラー
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: 未認証
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/UpdatedAtResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
-  /api/users:
+    delete:
+      tags:
+        - employees
+      operationId: deleteEmployee
+      summary: 従業員削除（論理削除）
+      description: |
+        USERS.enabled=0に更新（論理削除）。EMPLOYEESは削除しない。
+        REFRESH_TOKENSの該当ユーザーの全行をrevokedAtに現在時刻をセット（強制ログアウト）。
+      parameters:
+        - $ref: '#/components/parameters/employeeId'
+      responses:
+        '200':
+          description: 削除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ----------------------------------------
+  # 部門
+  # ----------------------------------------
+  /api/divisions:
     get:
       tags:
-        - Users
-      summary: ユーザー一覧取得（管理者専用）
-      description: ページネーション付きでユーザー一覧を取得する。管理者権限が必要。
-      operationId: getUsers
-      security:
-        - bearerAuth: []
+        - employees
+      operationId: getDivisions
+      summary: 部一覧取得
+      description: customerIdで絞り込み。delFlg=0のみ・displayOrder昇順で返却。
+      responses:
+        '200':
+          description: 部一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DivisionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - employees
+      operationId: createDivision
+      summary: 部門登録
+      description: displayOrder省略時は既存の最大displayOrder+1を設定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDivisionRequest'
+      responses:
+        '201':
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDivisionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/divisions/{divisionId}:
+    put:
+      tags:
+        - employees
+      operationId: updateDivision
+      summary: 部門情報更新
       parameters:
-        - name: page
-          in: query
-          description: ページ番号（0始まり）
-          required: false
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-        - name: size
-          in: query
-          description: 1ページあたりの件数
-          required: false
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-        - name: sort
-          in: query
-          description: "ソート条件（例: createdAt,desc）"
+        - $ref: '#/components/parameters/divisionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDivisionRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatedAtResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - employees
+      operationId: deleteDivision
+      summary: 部門削除（論理削除）
+      description: |
+        DIVISIONS.delFlg=1に更新。
+        配下のSECTIONSも合わせてdelFlg=1に更新。
+        該当divisionIdを持つEMPLOYEESのdivisionId=NULLに更新。
+      parameters:
+        - $ref: '#/components/parameters/divisionId'
+      responses:
+        '200':
+          description: 削除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ----------------------------------------
+  # 課
+  # ----------------------------------------
+  /api/sections:
+    get:
+      tags:
+        - employees
+      operationId: getSections
+      summary: 課一覧取得
+      description: divisionId指定時はその部の課のみ返す。delFlg=0・displayOrder昇順。
+      parameters:
+        - in: query
+          name: divisionId
           required: false
           schema:
             type: string
+            example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          description: 部ID（省略時は全課）
       responses:
-        "200":
-          description: 取得成功
+        '200':
+          description: 課一覧
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PageUserResponse"
-        "401":
-          description: 未認証
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 権限不足（管理者権限が必要）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/SectionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
-  /api/users/{id}:
-    get:
+    post:
       tags:
-        - Users
-      summary: ユーザー詳細取得（管理者専用）
-      description: 指定したIDのユーザー情報を取得する。管理者権限が必要。
-      operationId: getUserById
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          description: ユーザーID
-          required: true
-          schema:
-            type: integer
-            format: int64
+        - employees
+      operationId: createSection
+      summary: 課登録
+      description: divisionIdの存在確認を行い、存在しない場合は404エラー。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSectionRequest'
       responses:
-        "200":
-          description: 取得成功
+        '201':
+          description: 登録成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
-        "401":
-          description: 未認証
+                $ref: '#/components/schemas/CreateSectionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/sections/{sectionId}:
+    put:
+      tags:
+        - employees
+      operationId: updateSection
+      summary: 課情報更新
+      parameters:
+        - $ref: '#/components/parameters/sectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSectionRequest'
+      responses:
+        '200':
+          description: 更新成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 権限不足（管理者権限が必要）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: ユーザーが見つからない
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/UpdatedAtResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags:
-        - Users
-      summary: ユーザー削除（管理者専用）
-      description: 指定したIDのユーザーを削除する。管理者権限が必要。
-      operationId: deleteUser
-      security:
-        - bearerAuth: []
+        - employees
+      operationId: deleteSection
+      summary: 課削除（論理削除）
+      description: |
+        SECTIONS.delFlg=1に更新。
+        該当sectionIdを持つEMPLOYEESのsectionId=NULLに更新。
       parameters:
-        - name: id
-          in: path
-          description: ユーザーID
+        - $ref: '#/components/parameters/sectionId'
+      responses:
+        '200':
+          description: 削除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ----------------------------------------
+  # 役職
+  # ----------------------------------------
+  /api/role-labels:
+    get:
+      tags:
+        - employees
+      operationId: getRoleLabels
+      summary: 役職一覧取得
+      description: |
+        ROLE_LABEL_SETTINGSをcustomerIdで絞り込み。
+        レコードがないkizunaLevelはデフォルト名で補完（1=社長 2=役員 3=部長 4=課長 5=社員）。
+        kizunaLevel昇順で返却。
+      responses:
+        '200':
+          description: 役職一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleLabelListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/role-labels/{kizunaLevel}:
+    put:
+      tags:
+        - employees
+      operationId: updateRoleLabel
+      summary: 役職情報更新（UPSERT）
+      description: レコードがある場合はUPDATE、ない場合はINSERT（UPSERT）。kizunaLevelは1〜5のみ許可。
+      parameters:
+        - in: path
+          name: kizunaLevel
           required: true
           schema:
             type: integer
-            format: int64
+            minimum: 1
+            maximum: 5
+            example: 3
+          description: 役職レベル（1〜5）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleLabelRequest'
       responses:
-        "204":
-          description: 削除成功
-        "401":
-          description: 未認証
+        '200':
+          description: 更新成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: 権限不足（管理者権限が必要）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: ユーザーが見つからない
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/UpdateRoleLabelResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
+  # ----------------------------------------
+  # サーベイ管理
+  # ----------------------------------------
+  /api/surveys:
+    get:
+      tags:
+        - surveys
+      operationId: getSurveys
+      summary: サーベイ一覧取得
+      description: |
+        customerIdはJWTから取得。createdAt降順で返却。
+        ※従業員が多い場合は将来的にrespondentsを別APIに分離を検討（2026/05/13）
+      responses:
+        '200':
+          description: サーベイ一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyDetailListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - surveys
+      operationId: createSurvey
+      summary: 新規サーベイ配信
+      description: |
+        サーベイを作成し、全従業員にメールを配信する。
+        SURVEY_ANSWER_SESSIONSに全従業員分のセッションをansweredAt=NULLで事前登録。
+        【メールリンクからのアクセス】未ログイン状態でリンクをクリックした場合、ログイン画面にリダイレクトし、ログイン成功後は元のURL（/survey/answer/{surveyId}）に戻すこと。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSurveyRequest'
+      responses:
+        '201':
+          description: サーベイ配信成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSurveyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ----------------------------------------
+  # サーベイ回答
+  # ----------------------------------------
+  /api/surveys/{surveyId}/answer:
+    get:
+      tags:
+        - survey-answer
+      operationId: getSurveyAnswerForm
+      summary: サーベイ回答画面表示
+      description: |
+        employeeIdはJWTから取得。
+        EMPLOYEESテーブルからkizunaLevel, divisionId, sectionIdを毎回取得（JWTには含めない）。
+        SURVEY_QUESTIONS.respondentKizunaLevelでkizunaLevelに一致する設問のみ返す。
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      responses:
+        '200':
+          description: サーベイ情報と設問一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyAnswerFormResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - survey-answer
+      operationId: submitSurveyAnswer
+      summary: サーベイ回答送信
+      description: |
+        employeeIdはJWTから取得。
+        【バリデーション】answerValueは1〜7の整数のみ許可。範囲外の場合は400エラー。
+        【二重送信防止】SURVEY_ANSWER_SESSIONS.answeredAt IS NOT NULLの場合は409エラー。
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitAnswerRequest'
+      responses:
+        '200':
+          description: 回答送信成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 回答済み（二重送信）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# ----------------------------------------
+# 共通コンポーネント
+# ----------------------------------------
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: "Authorization ヘッダーに Bearer トークンを指定: `Authorization: Bearer <token>`"
+      description: |
+        JWT（JSON Web Token）によるBearerトークン認証。
+        リクエストヘッダーに以下の形式で付与すること。
+        Authorization: Bearer {accessToken}
+
+        【JWTペイロード定義】
+        | フィールド  | 型       | 値                           | 説明                                                                        |
+        |------------|----------|------------------------------|-----------------------------------------------------------------------------|
+        | iss        | string   | アプリ設定値                  | 発行者の識別。例: https://auth.kizunavi.example.com                          |
+        | sub        | string   | EMPLOYEES.employeeId         | JWT標準の主体識別子。jwt.getSubject()で参照される                             |
+        | aud        | string   | アプリ設定値                  | 想定される受信者。例: kizunavi-api                                            |
+        | iat        | number   | 自動付与（UNIXタイムスタンプ）| トークン発行時刻。デバッグ・監査・強制失効の基準として有用                      |
+        | exp        | number   | 自動付与（UNIXタイムスタンプ）| 有効期限。15分程度を推奨（短命にして漏洩リスクを限定）                          |
+        | jti        | string   | UUID生成                     | トークン一意ID。緊急時にRedisブラックリストへ載せて特定セッションを即時失効できる |
+        | employeeId | string   | EMPLOYEES.employeeId（UUID） | 従業員の業務的識別子。subと同値だが業務コードではこちらを使う                   |
+        | customerId | string   | EMPLOYEES.customerId         | テナント識別子。全業務クエリのフィルタ条件として必須。テナント越境防止の要        |
+        | roles      | string[] | USERS.role                   | 権限判定。例: ["ROLE_USER"], ["ROLE_ADMIN"]。将来の複数ロール対応も可能        |
+
+  parameters:
+    employeeId:
+      in: path
+      name: employeeId
+      required: true
+      schema:
+        type: string
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      description: 従業員ID（UUID）
+
+    divisionId:
+      in: path
+      name: divisionId
+      required: true
+      schema:
+        type: string
+        example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+      description: 部ID（UUID）
+
+    sectionId:
+      in: path
+      name: sectionId
+      required: true
+      schema:
+        type: string
+        example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+      description: 課ID（UUID）
+
+    surveyId:
+      in: path
+      name: surveyId
+      required: true
+      schema:
+        type: string
+        example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+      description: サーベイID（UUID）
+
+  responses:
+    BadRequest:
+      description: リクエストパラメータ不正
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 認証エラー（トークン未指定・無効・期限切れ）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: リソースが存在しない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
-    LoginRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          description: メールアドレス
-          example: user@example.com
-        password:
-          type: string
-          description: パスワード
-          example: password123
 
-    SignupRequest:
-      type: object
-      required:
-        - email
-        - password
-        - name
-      properties:
-        email:
-          type: string
-          format: email
-          description: メールアドレス
-          example: newuser@example.com
-        password:
-          type: string
-          minLength: 8
-          maxLength: 100
-          description: パスワード（8文字以上100文字以下）
-          example: securePass123
-        name:
-          type: string
-          maxLength: 100
-          description: ユーザー名（100文字以下）
-          example: 田中太郎
-
-    RefreshTokenRequest:
-      type: object
-      required:
-        - refreshToken
-      properties:
-        refreshToken:
-          type: string
-          description: リフレッシュトークン
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-    UpdateUserRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          maxLength: 100
-          description: ユーザー名（100文字以下）
-          example: 山田花子
-        password:
-          type: string
-          minLength: 8
-          maxLength: 100
-          description: 新しいパスワード（8文字以上100文字以下）
-          example: newSecurePass456
-        currentPassword:
-          type: string
-          description: 現在のパスワード（パスワード変更時に必要）
-          example: oldPassword123
-
-    TokenResponse:
-      type: object
-      properties:
-        accessToken:
-          type: string
-          description: アクセストークン（JWT）
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        refreshToken:
-          type: string
-          description: リフレッシュトークン
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        tokenType:
-          type: string
-          description: トークンタイプ
-          example: Bearer
-        expiresIn:
-          type: integer
-          format: int64
-          description: アクセストークンの有効期限（秒）
-          example: 3600
-
-    UserResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: ユーザーID
-          example: 1
-        email:
-          type: string
-          format: email
-          description: メールアドレス
-          example: user@example.com
-        name:
-          type: string
-          description: ユーザー名
-          example: 田中太郎
-        role:
-          $ref: "#/components/schemas/Role"
-        createdAt:
-          type: string
-          format: date-time
-          description: 作成日時
-          example: "2025-01-01T00:00:00"
-        updatedAt:
-          type: string
-          format: date-time
-          description: 更新日時
-          example: "2025-01-01T12:00:00"
-
+    # ----------------------------------------
+    # 汎用
+    # ----------------------------------------
     Role:
       type: string
       enum:
         - ROLE_USER
         - ROLE_ADMIN
       description: ユーザーロール
+      example: ROLE_USER
 
-    PageUserResponse:
-      type: object
-      description: ページネーション付きユーザー一覧レスポンス（Spring Data Page形式）
-      properties:
-        content:
-          type: array
-          description: ユーザー一覧
-          items:
-            $ref: "#/components/schemas/UserResponse"
-        pageable:
-          $ref: "#/components/schemas/Pageable"
-        totalElements:
-          type: integer
-          format: int64
-          description: 全件数
-          example: 100
-        totalPages:
-          type: integer
-          description: 総ページ数
-          example: 5
-        size:
-          type: integer
-          description: 1ページあたりの件数
-          example: 20
-        number:
-          type: integer
-          description: 現在のページ番号（0始まり）
-          example: 0
-        sort:
-          $ref: "#/components/schemas/Sort"
-        first:
-          type: boolean
-          description: 最初のページかどうか
-          example: true
-        last:
-          type: boolean
-          description: 最後のページかどうか
-          example: false
-        numberOfElements:
-          type: integer
-          description: 現在のページの要素数
-          example: 20
-        empty:
-          type: boolean
-          description: 空かどうか
-          example: false
-
-    Pageable:
+    StatusMessage:
       type: object
       properties:
-        pageNumber:
-          type: integer
-          description: ページ番号
-          example: 0
-        pageSize:
-          type: integer
-          description: ページサイズ
-          example: 20
-        sort:
-          $ref: "#/components/schemas/Sort"
-        offset:
-          type: integer
-          format: int64
-          description: オフセット
-          example: 0
-        paged:
-          type: boolean
-          example: true
-        unpaged:
-          type: boolean
-          example: false
+        responseStatus:
+          type: string
+          example: success
+        message:
+          type: string
+          nullable: true
+          example: ログアウトしました
 
-    Sort:
+    SimpleStatusResponse:
       type: object
       properties:
-        empty:
-          type: boolean
-          example: true
-        sorted:
-          type: boolean
-          example: false
-        unsorted:
-          type: boolean
-          example: true
+        responseStatus:
+          type: string
+          example: success
+
+    UpdatedAtResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-05-01T09:00:00Z"
 
     ErrorResponse:
       type: object
@@ -554,9 +878,10 @@ components:
           type: string
           format: date-time
           description: エラー発生日時
-          example: "2025-01-01T12:00:00"
+          example: "2026-05-01T09:00:00Z"
         status:
           type: integer
+          format: int32
           description: HTTPステータスコード
           example: 400
         error:
@@ -574,8 +899,9 @@ components:
         fieldErrors:
           type: array
           description: フィールドごとのバリデーションエラー（バリデーションエラー時のみ）
+          nullable: true
           items:
-            $ref: "#/components/schemas/FieldError"
+            $ref: '#/components/schemas/FieldError'
 
     FieldError:
       type: object
@@ -587,7 +913,759 @@ components:
         message:
           type: string
           description: エラーメッセージ
-          example: 必須項目です
+          example: メールアドレスの形式が正しくありません
         rejectedValue:
           description: 拒否された値
-          example: ""
+          example: invalid-email
+
+    # ----------------------------------------
+    # 認証リクエスト
+    # ----------------------------------------
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス（USERS.email）
+          example: yamada.taro@example.co.jp
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: パスワード（BCrypt検証対象）
+          example: P@ssw0rd123
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: リフレッシュトークン（REFRESH_TOKENS確認用）
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス（USERS.emailで検索）
+          example: yamada.taro@example.co.jp
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          description: リセットトークン（PASSWORD_RESET_TOKENS.tokenHashの元値）
+          example: a1b2c3d4e5f6789012345678901234567890abcd
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: 新パスワード（BCryptハッシュ化してUSERS.passwordHashへ）
+          example: NewP@ssw0rd456
+
+    FirstLoginRequest:
+      type: object
+      required:
+        - email
+        - tempPassword
+        - newPassword
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+          example: yamada.taro@example.co.jp
+        tempPassword:
+          type: string
+          description: 仮パスワード（BCrypt検証）
+          example: TempPass001
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: 新パスワード（BCryptハッシュ化）
+          example: NewP@ssw0rd456
+
+    # ----------------------------------------
+    # 認証レスポンス
+    # ----------------------------------------
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: アクセストークン（JWT）
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        name:
+          type: string
+          description: ユーザー表示名（USERS.name。取得後フロントでlocalStorageに保存）
+          example: 山田太郎
+
+    TokenRefreshResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: 新しいアクセストークン（JWT）
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    PasswordResetVerifyResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        valid:
+          type: boolean
+          description: true=有効 / false=無効
+          example: true
+        message:
+          type: string
+          nullable: true
+          description: 無効時の理由（期限切れ / 使用済み）
+          example: null
+
+    # ----------------------------------------
+    # 従業員
+    # ----------------------------------------
+    Employee:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        displayName:
+          type: string
+          example: 山田太郎
+        email:
+          type: string
+          format: email
+          example: yamada.taro@example.co.jp
+        role:
+          $ref: '#/components/schemas/Role'
+        divisionId:
+          type: string
+          nullable: true
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        divisionName:
+          type: string
+          nullable: true
+          example: 営業部
+        sectionId:
+          type: string
+          nullable: true
+          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+        sectionName:
+          type: string
+          nullable: true
+          example: 第一営業課
+        kizunaLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 3
+        roleLabel:
+          type: string
+          example: 部長
+        hireDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2020-04-01"
+
+    EmployeeListResponse:
+      type: object
+      properties:
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Employee'
+
+    CreateEmployeeRequest:
+      type: object
+      required:
+        - displayName
+        - email
+        - role
+        - kizunaLevel
+        - tempPassword
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          description: 表示名（USERS.name）
+          example: 山田太郎
+        email:
+          type: string
+          format: email
+          description: メールアドレス（USERS.email・一意）
+          example: yamada.taro@example.co.jp
+        role:
+          $ref: '#/components/schemas/Role'
+        kizunaLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: 役職レベル
+          example: 3
+        divisionId:
+          type: string
+          nullable: true
+          description: 部ID（kizunaLevel=2はNULL必須）
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        sectionId:
+          type: string
+          nullable: true
+          description: 課ID
+          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+        hireDate:
+          type: string
+          format: date
+          nullable: true
+          description: 入社日（YYYY-MM-DD）
+          example: "2020-04-01"
+        tempPassword:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: 仮パスワード（BCryptハッシュ化してUSERS.passwordHashに保存）
+          example: TempPass001
+
+    CreateEmployeeResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        employeeId:
+          type: string
+          description: 新規発行UUID
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        userId:
+          type: integer
+          format: int64
+          description: USERS.userId（IDENTITY）
+          example: 42
+
+    UpdateEmployeeRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: 山田太郎
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: yamada.taro@example.co.jp
+        role:
+          $ref: '#/components/schemas/Role'
+        kizunaLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+          example: 3
+        divisionId:
+          type: string
+          nullable: true
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        sectionId:
+          type: string
+          nullable: true
+          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+        hireDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2020-04-01"
+
+    # ----------------------------------------
+    # 部門
+    # ----------------------------------------
+    Division:
+      type: object
+      properties:
+        divisionId:
+          type: string
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        displayName:
+          type: string
+          example: 営業部
+        displayOrder:
+          type: integer
+          example: 1
+
+    DivisionListResponse:
+      type: object
+      properties:
+        divisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Division'
+
+    CreateDivisionRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          description: 部名称
+          example: 営業部
+        displayOrder:
+          type: integer
+          nullable: true
+          description: 表示順（省略時は末尾）
+          example: 1
+
+    CreateDivisionResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        divisionId:
+          type: string
+          description: 新規発行UUID
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+
+    UpdateDivisionRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: 営業本部
+
+    # ----------------------------------------
+    # 課
+    # ----------------------------------------
+    Section:
+      type: object
+      properties:
+        sectionId:
+          type: string
+          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+        divisionId:
+          type: string
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        divisionName:
+          type: string
+          example: 営業部
+        displayName:
+          type: string
+          example: 第一営業課
+        displayOrder:
+          type: integer
+          example: 1
+
+    SectionListResponse:
+      type: object
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+
+    CreateSectionRequest:
+      type: object
+      required:
+        - divisionId
+        - displayName
+      properties:
+        divisionId:
+          type: string
+          description: 部ID
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        displayName:
+          type: string
+          maxLength: 100
+          description: 課名称
+          example: 第一営業課
+        displayOrder:
+          type: integer
+          nullable: true
+          description: 表示順（省略時は末尾）
+          example: 1
+
+    CreateSectionResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        sectionId:
+          type: string
+          description: 新規発行UUID
+          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+
+    UpdateSectionRequest:
+      type: object
+      properties:
+        divisionId:
+          type: string
+          nullable: true
+          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        displayName:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: 第二営業課
+
+    # ----------------------------------------
+    # 役職
+    # ----------------------------------------
+    RoleLabel:
+      type: object
+      properties:
+        kizunaLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: 役職レベル（1〜5）
+          example: 3
+        displayName:
+          type: string
+          description: 役職表示名
+          example: 部長
+
+    RoleLabelListResponse:
+      type: object
+      properties:
+        roleLabels:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleLabel'
+
+    UpdateRoleLabelRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          maxLength: 50
+          description: 役職表示名
+          example: 部長
+
+    UpdateRoleLabelResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        kizunaLevel:
+          type: integer
+          example: 3
+        displayName:
+          type: string
+          example: 部長
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-05-01T09:00:00Z"
+
+    # ----------------------------------------
+    # ダッシュボード
+    # ----------------------------------------
+    SurveySummary:
+      type: object
+      properties:
+        surveyId:
+          type: string
+          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+        surveyName:
+          type: string
+          nullable: true
+          example: 2026年5月度サーベイ
+        implementationDate:
+          type: string
+          format: date
+          example: "2026-05-01"
+        totalKizunaScore:
+          type: number
+          example: 72.5
+
+    DashboardListResponse:
+      type: object
+      properties:
+        surveys:
+          type: array
+          description: 全サーベイ一覧
+          items:
+            $ref: '#/components/schemas/SurveySummary'
+
+    DashboardSummary:
+      type: object
+      properties:
+        kizunaScore:
+          type: number
+          example: 72.5
+        kizunaChangeScore:
+          type: number
+          example: 3.2
+        roleExpectationScore:
+          type: number
+          example: 68.0
+        engagementScore:
+          type: number
+          example: 74.1
+        climateScore:
+          type: number
+          example: 70.3
+        accuracyScore:
+          type: number
+          example: 65.8
+        condition:
+          type: integer
+          description: 1=良好 2=普通 3=要注意
+          example: 2
+        responseRate:
+          type: number
+          description: 回答率（0〜1）
+          example: 0.85
+        alertTop10:
+          type: array
+          description: アラート上位10件（DASHBOARD_SUMMARIES.alertTop10）
+          items: {}
+
+    EmployeeValue:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        displayName:
+          type: string
+          example: 山田太郎
+        divisionName:
+          type: string
+          nullable: true
+          example: 営業部
+        kizunaLevel:
+          type: integer
+          example: 3
+        scoreExploreExploit:
+          type: number
+          example: 0.62
+        scoreLongShort:
+          type: number
+          example: 0.48
+        scoreAssertListen:
+          type: number
+          example: 0.55
+        scoreExpressSuppress:
+          type: number
+          example: 0.71
+        kizunaScore:
+          type: number
+          description: クリック時に使用
+          example: 72.5
+        phaseScore:
+          type: number
+          description: クリック時に使用
+          example: 3.1
+
+    DashboardResponse:
+      type: object
+      properties:
+        surveys:
+          type: array
+          description: 全サーベイ一覧（サイドバー・ドロップダウン用）
+          items:
+            $ref: '#/components/schemas/SurveySummary'
+        survey:
+          $ref: '#/components/schemas/SurveySummary'
+        summary:
+          $ref: '#/components/schemas/DashboardSummary'
+        values:
+          type: array
+          description: 従業員バリュー分布
+          items:
+            $ref: '#/components/schemas/EmployeeValue'
+
+    # ----------------------------------------
+    # サーベイ管理
+    # ----------------------------------------
+    SurveyRespondent:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        displayName:
+          type: string
+          example: 山田太郎
+        divisionName:
+          type: string
+          nullable: true
+          example: 営業部
+        answeredAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: NULL=未回答 / 値あり=回答済み
+          example: "2026-05-10T14:30:00Z"
+
+    SurveyDetail:
+      type: object
+      properties:
+        surveyId:
+          type: string
+          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+        surveyName:
+          type: string
+          nullable: true
+          example: 2026年5月度サーベイ
+        answerDeadline:
+          type: string
+          format: date
+          example: "2026-05-31"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-01T09:00:00Z"
+        totalEmployees:
+          type: integer
+          example: 50
+        responseCount:
+          type: integer
+          example: 43
+        noResponseCount:
+          type: integer
+          example: 7
+        respondents:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyRespondent'
+
+    SurveyDetailListResponse:
+      type: object
+      properties:
+        surveys:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyDetail'
+
+    CreateSurveyRequest:
+      type: object
+      required:
+        - answerDeadline
+      properties:
+        surveyName:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: サーベイ名
+          example: 2026年5月度サーベイ
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 説明文
+          example: 今月のサーベイです。正直にご回答ください。
+        answerDeadline:
+          type: string
+          format: date
+          description: 回答締め切り（YYYY-MM-DD）
+          example: "2026-05-31"
+
+    CreateSurveyResponse:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          example: success
+        surveyId:
+          type: string
+          description: 作成されたサーベイID
+          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+        sentCount:
+          type: integer
+          description: 配信人数
+          example: 50
+
+    # ----------------------------------------
+    # サーベイ回答
+    # ----------------------------------------
+    SurveyQuestion:
+      type: object
+      properties:
+        questionId:
+          type: string
+          example: q1a2b3c4-d5e6-7890-abcd-ef1234567894
+        questionNo:
+          type: integer
+          example: 1
+        questionText:
+          type: string
+          example: 上司から役割への期待を明確に伝えられていると感じますか？
+
+    SurveyAnswerFormResponse:
+      type: object
+      properties:
+        surveyId:
+          type: string
+          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+        surveyName:
+          type: string
+          nullable: true
+          example: 2026年5月度サーベイ
+        answerDeadline:
+          type: string
+          format: date
+          example: "2026-05-31"
+        alreadyAnswered:
+          type: boolean
+          description: true=回答済み（フロントが回答済み画面を表示）
+          example: false
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyQuestion'
+
+    AnswerItem:
+      type: object
+      required:
+        - questionId
+        - answerValue
+      properties:
+        questionId:
+          type: string
+          description: 設問ID
+          example: q1a2b3c4-d5e6-7890-abcd-ef1234567894
+        answerValue:
+          type: integer
+          minimum: 1
+          maximum: 7
+          description: 回答値（1〜7）
+          example: 5
+
+    SubmitAnswerRequest:
+      type: object
+      required:
+        - answers
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerItem'
