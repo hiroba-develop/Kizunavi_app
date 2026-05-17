@@ -1450,22 +1450,22 @@ components:
       properties:
         kizunaScore:
           type: number
-          example: 72.5
+          example: 64.0
         kizunaChangeScore:
           type: number
-          example: 3.2
+          example: 43.0
         roleExpectationScore:
           type: number
-          example: 68.0
+          example: 66.0
         engagementScore:
           type: number
-          example: 74.1
+          example: 74.0
         climateScore:
           type: number
-          example: 70.3
+          example: 80.0
         accuracyScore:
           type: number
-          example: 65.8
+          example: 73.0
         condition:
           type: integer
           description: 1=良好 2=普通 3=要注意
