@@ -75,12 +75,14 @@ paths:
       operationId: logout
       summary: ログアウト
       description: リフレッシュトークンを失効させる。アクセストークンはステートレスのためサーバー側での無効化は不要。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LogoutRequest'
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
+            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: リフレッシュトークン（HttpOnly Cookieとしてブラウザが自動送信）
       responses:
         '200':
           description: ログアウト成功
@@ -257,8 +259,7 @@ paths:
       operationId: getDashboard
       summary: ダッシュボード取得
       description: |
-        サーベイ一覧・サマリー・従業員バリュー分布を一括取得する。
-        surveyId省略時はSURVEY_DETAILSのcreatedAt降順で最新サーベイを自動取得。
+        指定したsurveyIdのサーベイについて、サーベイ一覧・サマリー・従業員バリュー分布を一括取得する。
         customerIdはJWTから取得するためクエリパラメータへの指定は不要。
         ※レスポンスが大きい場合は将来的にAPIの分離を検討（2026/05/13）
       parameters:
@@ -267,8 +268,9 @@ paths:
           required: true
           schema:
             type: string
-            example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
-          description: サーベイID（省略時は最新サーベイを自動取得）
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440004
+          description: サーベイID
       responses:
         '200':
           description: ダッシュボードデータ
@@ -493,7 +495,8 @@ paths:
           required: false
           schema:
             type: string
-            example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440002
           description: 部ID（省略時は全課）
       responses:
         '200':
@@ -778,7 +781,8 @@ components:
       required: true
       schema:
         type: string
-        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440001
       description: 従業員ID（UUID）
 
     divisionId:
@@ -787,7 +791,8 @@ components:
       required: true
       schema:
         type: string
-        example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440002
       description: 部ID（UUID）
 
     sectionId:
@@ -796,7 +801,8 @@ components:
       required: true
       schema:
         type: string
-        example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440003
       description: 課ID（UUID）
 
     surveyId:
@@ -805,7 +811,8 @@ components:
       required: true
       schema:
         type: string
-        example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440004
       description: サーベイID（UUID）
 
   responses:
@@ -843,6 +850,8 @@ components:
 
     StatusMessage:
       type: object
+      required:
+        - responseStatus
       properties:
         responseStatus:
           type: string
@@ -854,6 +863,8 @@ components:
 
     SimpleStatusResponse:
       type: object
+      required:
+        - responseStatus
       properties:
         responseStatus:
           type: string
@@ -861,6 +872,9 @@ components:
 
     UpdatedAtResponse:
       type: object
+      required:
+        - responseStatus
+        - updatedAt
       properties:
         responseStatus:
           type: string
@@ -873,6 +887,12 @@ components:
     ErrorResponse:
       type: object
       description: エラーレスポンス
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
       properties:
         timestamp:
           type: string
@@ -939,16 +959,6 @@ components:
           description: パスワード（BCrypt検証対象）
           example: P@ssw0rd123
 
-    LogoutRequest:
-      type: object
-      required:
-        - refreshToken
-      properties:
-        refreshToken:
-          type: string
-          description: リフレッシュトークン（REFRESH_TOKENS確認用）
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
     ForgotPasswordRequest:
       type: object
       required:
@@ -1005,6 +1015,9 @@ components:
     # ----------------------------------------
     LoginResponse:
       type: object
+      required:
+        - token
+        - name
       properties:
         token:
           type: string
@@ -1017,6 +1030,8 @@ components:
 
     TokenRefreshResponse:
       type: object
+      required:
+        - token
       properties:
         token:
           type: string
@@ -1047,7 +1062,8 @@ components:
       properties:
         employeeId:
           type: string
-          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440001
         displayName:
           type: string
           example: 山田太郎
@@ -1059,16 +1075,18 @@ components:
           $ref: '#/components/schemas/Role'
         divisionId:
           type: string
+          format: uuid
           nullable: true
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          example: 550e8400-e29b-41d4-a716-446655440002
         divisionName:
           type: string
           nullable: true
           example: 営業部
         sectionId:
           type: string
+          format: uuid
           nullable: true
-          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+          example: 550e8400-e29b-41d4-a716-446655440003
         sectionName:
           type: string
           nullable: true
@@ -1124,14 +1142,16 @@ components:
           example: 3
         divisionId:
           type: string
+          format: uuid
           nullable: true
           description: 部ID（kizunaLevel=2はNULL必須）
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          example: 550e8400-e29b-41d4-a716-446655440002
         sectionId:
           type: string
+          format: uuid
           nullable: true
           description: 課ID
-          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+          example: 550e8400-e29b-41d4-a716-446655440003
         hireDate:
           type: string
           format: date
@@ -1153,8 +1173,9 @@ components:
           example: success
         employeeId:
           type: string
+          format: uuid
           description: 新規発行UUID
-          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          example: 550e8400-e29b-41d4-a716-446655440001
         userId:
           type: integer
           format: int64
@@ -1184,12 +1205,14 @@ components:
           example: 3
         divisionId:
           type: string
+          format: uuid
           nullable: true
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          example: 550e8400-e29b-41d4-a716-446655440002
         sectionId:
           type: string
+          format: uuid
           nullable: true
-          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+          example: 550e8400-e29b-41d4-a716-446655440003
         hireDate:
           type: string
           format: date
@@ -1204,7 +1227,8 @@ components:
       properties:
         divisionId:
           type: string
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440002
         displayName:
           type: string
           example: 営業部
@@ -1244,8 +1268,9 @@ components:
           example: success
         divisionId:
           type: string
+          format: uuid
           description: 新規発行UUID
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          example: 550e8400-e29b-41d4-a716-446655440002
 
     UpdateDivisionRequest:
       type: object
@@ -1264,10 +1289,12 @@ components:
       properties:
         sectionId:
           type: string
-          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440003
         divisionId:
           type: string
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440002
         divisionName:
           type: string
           example: 営業部
@@ -1294,8 +1321,9 @@ components:
       properties:
         divisionId:
           type: string
+          format: uuid
           description: 部ID
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          example: 550e8400-e29b-41d4-a716-446655440002
         displayName:
           type: string
           maxLength: 100
@@ -1315,16 +1343,18 @@ components:
           example: success
         sectionId:
           type: string
+          format: uuid
           description: 新規発行UUID
-          example: ec1a2b3c-d4d5-6789-abcd-ef1234567893
+          example: 550e8400-e29b-41d4-a716-446655440003
 
     UpdateSectionRequest:
       type: object
       properties:
         divisionId:
           type: string
+          format: uuid
           nullable: true
-          example: d1a2b3c4-e5f6-7890-abcd-ef1234567892
+          example: 550e8400-e29b-41d4-a716-446655440002
         displayName:
           type: string
           maxLength: 100
@@ -1392,7 +1422,8 @@ components:
       properties:
         surveyId:
           type: string
-          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440004
         surveyName:
           type: string
           nullable: true
@@ -1445,7 +1476,10 @@ components:
           example: 0.85
         alertTop10:
           type: array
-          description: アラート上位10件（DASHBOARD_SUMMARIES.alertTop10）
+          description: |
+            アラート上位10件（DASHBOARD_SUMMARIES.alertTop10）。
+            ※要素の shape は別途設計予定。現時点では未定義のため any 扱い。
+            フロント・バックともに実装前に型定義の合意を取ること。
           items: {}
 
     EmployeeValue:
@@ -1453,7 +1487,8 @@ components:
       properties:
         employeeId:
           type: string
-          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440001
         displayName:
           type: string
           example: 山田太郎
@@ -1487,6 +1522,11 @@ components:
 
     DashboardResponse:
       type: object
+      required:
+        - surveys
+        - survey
+        - summary
+        - values
       properties:
         surveys:
           type: array
@@ -1511,7 +1551,8 @@ components:
       properties:
         employeeId:
           type: string
-          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440001
         displayName:
           type: string
           example: 山田太郎
@@ -1531,7 +1572,8 @@ components:
       properties:
         surveyId:
           type: string
-          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440004
         surveyName:
           type: string
           nullable: true
@@ -1597,12 +1639,9 @@ components:
           example: success
         surveyId:
           type: string
+          format: uuid
           description: 作成されたサーベイID
-          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
-        sentCount:
-          type: integer
-          description: 配信人数
-          example: 50
+          example: 550e8400-e29b-41d4-a716-446655440004
 
     # ----------------------------------------
     # サーベイ回答
@@ -1612,7 +1651,8 @@ components:
       properties:
         questionId:
           type: string
-          example: q1a2b3c4-d5e6-7890-abcd-ef1234567894
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440005
         questionNo:
           type: integer
           example: 1
@@ -1625,7 +1665,8 @@ components:
       properties:
         surveyId:
           type: string
-          example: s1a2b3c4-d5e6-7890-abcd-ef1234567891
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440004
         surveyName:
           type: string
           nullable: true
@@ -1651,8 +1692,9 @@ components:
       properties:
         questionId:
           type: string
+          format: uuid
           description: 設問ID
-          example: q1a2b3c4-d5e6-7890-abcd-ef1234567894
+          example: 550e8400-e29b-41d4-a716-446655440005
         answerValue:
           type: integer
           minimum: 1
