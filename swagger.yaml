@@ -1470,10 +1470,6 @@ components:
           type: integer
           description: 1=良好 2=普通 3=要注意
           example: 2
-        responseRate:
-          type: number
-          description: 回答率（0〜1）
-          example: 0.85
         alertTop10:
           type: array
           description: |
@@ -1518,7 +1514,7 @@ components:
         phaseScore:
           type: number
           description: クリック時に使用
-          example: 3.1
+          example: 3.0
 
     DashboardResponse:
       type: object
