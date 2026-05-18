@@ -185,6 +185,23 @@ docker compose up --build
 - バックエンド: http://localhost:8080（`BACKEND_PORT`）
 - フロントエンド: http://localhost:5173（`FRONTEND_PORT`）
 
+## JPA エンティティの自動生成
+
+DDL（[`src/main/resources/db/oracle/kizunavi_ddl.sql`](src/main/resources/db/oracle/kizunavi_ddl.sql)）から `com.kizunavi.entity` 配下のエンティティを生成する。
+
+```bash
+# 生成のみ（出力: build/generated-sources/entities）
+./gradlew generateEntities
+
+# 上記のあと src/main/java/com/kizunavi/entity へコピー
+./gradlew copyGeneratedEntities
+
+# 生成とコピーを連続実行
+./gradlew generateAndCopyEntities
+```
+
+Windows では `gradlew.bat` を使用する。生成ファイルには「手編集しない」旨のヘッダが付く。DDL の `COMMENT ON` がクラス・フィールドの Javadoc になる。物理 FK のみ `@ManyToOne` を出力し、概念 FK は ID カラムとして扱う。
+
 ## ビルド
 
 ```bash

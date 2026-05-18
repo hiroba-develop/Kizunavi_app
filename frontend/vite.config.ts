@@ -20,6 +20,13 @@ export default defineConfig({
         xfwd: true,
       },
     },
+    watch: {
+      ignored: [
+        '**/Dockerfile',
+        '**/.dockerignore',
+        '**/docker-compose*.yml',
+      ],
+    },
   },
   preview: {
     port: 5175,

@@ -124,6 +124,29 @@ task copyGeneratedSources(type: Copy) {
     include "**/*.java"
 }
 
+tasks.register('generateEntities', com.kizunavi.gradle.EntityGeneratorTask) {
+    group = 'codegen'
+    description = 'kizunavi_ddl.sql から JPA エンティティを build/generated-sources/entities に生成する'
+    ddlFile.set(layout.projectDirectory.file('src/main/resources/db/oracle/kizunavi_ddl.sql'))
+    outputDir.set(layout.buildDirectory.dir('generated-sources/entities'))
+    javaPackage.set('com.kizunavi.entity')
+}
+
+tasks.register('copyGeneratedEntities', Copy) {
+    group = 'codegen'
+    description = 'generateEntities の出力を src/main/java/com/kizunavi/entity にコピーする'
+    dependsOn tasks.named('generateEntities')
+    from layout.buildDirectory.dir('generated-sources/entities')
+    into layout.projectDirectory.dir('src/main/java/com/kizunavi/entity')
+    include '**/*.java'
+}
+
+tasks.register('generateAndCopyEntities') {
+    group = 'codegen'
+    description = 'generateEntities と copyGeneratedEntities を連続実行する'
+    dependsOn tasks.named('copyGeneratedEntities')
+}
+
 // bootRun 時に継続ビルド（-t classes）を子プロセスで起動し、DevTools が build/classes の更新を検知できるようにする
 def isWindowsOs = System.getProperty('os.name').toLowerCase().contains('windows')
 

@@ -2,20 +2,19 @@ package com.kizunavi.entity;
 
 import com.kizunavi.dto.Role;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-
 /**
- * アプリケーション利用者を表す JPA エンティティ。
+ * 認証ユーザーテーブル: ログイン認証情報・アカウント状態を管理
  *
- * <p>テーブル名は {@code users}。認証用のハッシュ済みパスワードを保持する。
- * リフレッシュトークンは {@link RefreshToken} テーブルに分離する。</p>
+ * <p>このファイルは {@code kizunavi_ddl.sql} から自動生成されています。手編集しないでください。
+ * 再生成: {@code ./gradlew generateEntities copyGeneratedEntities}</p>
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = { @UniqueConstraint(name = "uk_users_email", columnNames = { "email" }), @UniqueConstraint(name = "uk_users_employee_id", columnNames = { "employee_id" }) })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,78 +22,67 @@ import java.time.LocalDateTime;
 @Builder
 public class User {
 
-    /** 主キー（自動採番）。 */
+
+    /** 従業員ID (FK→EMPLOYEES, 1:1, NULL=管理者アカウント等) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
+
+    /** 顧客ID (FK→CUSTOMERS, テナント特定用) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    /** ユーザーID (IDENTITY) */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long userId;
 
-    /** ログイン ID 兼ユニークなメールアドレス。 */
-    @Column(nullable = false, unique = true, length = 255)
+    /** メールアドレス (ログインID, 一意) */
+    @Column(name = "email", nullable = false, length = 255)
     private String email;
 
-    /** BCrypt 等でハッシュ化されたパスワード。 */
+    /** パスワードハッシュ (BCrypt 72文字固定) */
     @Column(name = "password_hash", nullable = false, length = 72)
     private String passwordHash;
 
-    /** 表示名。 */
-    @Column(nullable = false, length = 100)
+    /** 表示名 (人事氏名としても利用) */
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    /** 権限（例: {@code ROLE_USER}）。 */
+    /** ロール (ROLE_USER / ROLE_ADMIN) */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "role", nullable = false, length = 20)
     private Role role;
 
-    /** アカウントが有効かどうか（無効時は認証不可の想定）。 */
-    @Column(nullable = false)
+    /** 有効フラグ (1:有効 0:無効) */
+    @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
-    /** 連続ログイン失敗回数。 */
+    /** 連続ログイン失敗回数 */
     @Column(name = "failed_login_count", nullable = false)
-    @Builder.Default
-    private int failedLoginCount = 0;
+    private Integer failedLoginCount;
 
-    /** 一時ロック解除時刻。未ロックなら null。 */
+    /** ロック解除時刻 (NULL=ロックなし) */
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
 
-    /** 最終ログイン成功時刻。 */
+    /** 最終ログイン日時 */
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-    /** パスワード最終変更時刻。 */
+    /** 最終パスワード変更日時 */
     @Column(name = "last_password_changed_at", nullable = false)
     private LocalDateTime lastPasswordChangedAt;
 
-    @Version
-    @Column(name = "version", nullable = false)
-    @Builder.Default
-    private long version = 0L;
-
-    /** レコード作成日時（挿入時に自動設定）。 */
+    /** 作成日時 */
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /** レコード最終更新日時。 */
+    /** 更新日時 */
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    /**
-     * 永続化直前のデフォルト値補完。
-     */
-    @PrePersist
-    public void prePersist() {
-        if (role == null) {
-            role = Role.ROLE_USER;
-        }
-        if (!enabled) {
-            enabled = true;
-        }
-        if (lastPasswordChangedAt == null) {
-            lastPasswordChangedAt = LocalDateTime.now();
-        }
-    }
 }
