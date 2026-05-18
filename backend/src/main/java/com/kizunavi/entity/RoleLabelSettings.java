@@ -5,7 +5,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 役職名称設定テーブル: 企業ごとの役職表示名 (レコードなし=デフォルト名)
@@ -64,6 +66,7 @@ public class RoleLabelSettings {
     private LocalDateTime updatedAt;
 
     /** 削除フラグ (0:有効 1:削除) */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "del_flg", length = 1)
     private String delFlg;
 }

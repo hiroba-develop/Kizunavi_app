@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 /**
  * サーベイ設問テーブル: 設問定義マスタ。SURVEY_QUESTION_MAPPINGSで割当管理
@@ -56,6 +58,7 @@ public class SurveyQuestion {
     private String elementCode;
 
     /** スコア方向 (F=順方向 / R=逆方向 / NULL=フェーズ評価) */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "score_direction", length = 1)
     private String scoreDirection;
 

@@ -179,6 +179,12 @@ ${idFields}
         if (col.oracleType == 'CLOB') {
             return ['    @Lob', "    @Column(${attrs.join(', ')})"]
         }
+        if (col.oracleType == 'CHAR') {
+            return [
+                '    @JdbcTypeCode(SqlTypes.CHAR)',
+                "    @Column(${attrs.join(', ')})"
+            ]
+        }
         if (col.name == 'created_at' && col.oracleType == 'TIMESTAMP' && hasUpdatedAtColumn(table)) {
             def lines = ['    @CreationTimestamp', '    @Column(name = "created_at", nullable = false, updatable = false)']
             return lines
@@ -268,6 +274,7 @@ ${idFields}
         def hasUpdatedAt = hasUpdatedAtColumn(table)
         def needsCreationTimestamp = hasCreatedAt && hasUpdatedAt
         def needsUpdateTimestamp = hasUpdatedAt
+        def needsJdbcTypeCode = table.columns.any { it.oracleType == 'CHAR' }
 
         if (needsBigDecimal) {
             imports << 'java.math.BigDecimal'
@@ -286,6 +293,10 @@ ${idFields}
         }
         if (needsUpdateTimestamp) {
             imports << 'org.hibernate.annotations.UpdateTimestamp'
+        }
+        if (needsJdbcTypeCode) {
+            imports << 'org.hibernate.annotations.JdbcTypeCode'
+            imports << 'org.hibernate.type.SqlTypes'
         }
     }
 

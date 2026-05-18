@@ -1,10 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchSurveyQuestions, submitSurveyAnswers } from "../services/surveyService";
+import { SurveyAnswerService } from "../api";
 import { SCALE_LABELS } from "../types/survey";
 import type { SurveyQuestion } from "../types/survey";
 
 const QUESTIONS_PER_PAGE = 10;
+
+const fetchSurveyQuestions = async (
+  surveyId: string
+): Promise<SurveyQuestion[]> => {
+  const response = await SurveyAnswerService.getSurveyAnswerForm(surveyId);
+  return (response.questions ?? []).map((question, index) => ({
+    id: question.questionNo ?? index + 1,
+    category: "設問",
+    text: question.questionText ?? "",
+  }));
+};
+
+const submitSurveyAnswers = async (
+  surveyId: string,
+  answers: Record<number, number>
+): Promise<void> => {
+  const response = await SurveyAnswerService.getSurveyAnswerForm(surveyId);
+  const answerItems = (response.questions ?? [])
+    .map((question, index) => {
+      const questionNo = question.questionNo ?? index + 1;
+      const answerValue = answers[questionNo];
+      if (!question.questionId || answerValue === undefined) return null;
+      return {
+        questionId: question.questionId,
+        answerValue,
+      };
+    })
+    .filter((item): item is { questionId: string; answerValue: number } =>
+      Boolean(item)
+    );
+
+  await SurveyAnswerService.submitSurveyAnswer(surveyId, {
+    answers: answerItems,
+  });
+};
 
 const SurveyAnswer = () => {
   const { surveyId } = useParams<{ surveyId: string }>();

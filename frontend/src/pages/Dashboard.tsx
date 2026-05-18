@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  fetchAlerts,
-  fetchSurveyOptions,
-  fetchSurveySnapshot,
-  fetchValueMapPoints,
-} from "../services/dashboardService";
+import { DashboardService } from "../api";
 import {
   ALERT_CATEGORIES,
   ALERT_CATEGORY_DISPLAY_ORDER,
@@ -17,6 +12,109 @@ import type {
   SurveySnapshot,
   ValueMapPoint,
 } from "../types/dashboard";
+
+const toDateLabel = (date?: string | null): string => {
+  if (!date) return "-";
+  return date.slice(0, 10);
+};
+
+const toNumber = (value: unknown, fallback = 0): number =>
+  typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+const phaseToneFromScore = (score: number): "danger" | "warning" | "good" => {
+  if (score >= 67) return "good";
+  if (score >= 34) return "warning";
+  return "danger";
+};
+
+const alertSeverityFromPriority = (priority: number): "high" | "middle" | "low" => {
+  if (priority <= 3) return "high";
+  if (priority <= 7) return "middle";
+  return "low";
+};
+
+const alertStatusFromPriority = (priority: number): "warning" | "ok" =>
+  priority <= 5 ? "warning" : "ok";
+
+const parseAlertItems = (rawTop10: unknown): AlertItem[] => {
+  if (!Array.isArray(rawTop10)) return [];
+  return rawTop10.map((item, index) => {
+    const record = item as Record<string, unknown>;
+    const priority = toNumber(record.priority, index + 1);
+    return {
+      id: String(record.id ?? record.alertId ?? index + 1),
+      category: String(record.category ?? record.alertCategory ?? "その他"),
+      priority,
+      status: alertStatusFromPriority(priority),
+      severity: alertSeverityFromPriority(priority),
+      title: String(record.title ?? record.alertTitle ?? "アラート"),
+      description: String(record.description ?? record.message ?? ""),
+    };
+  });
+};
+
+const buildScoreCards = (
+  summary?: {
+    roleExpectationScore?: number;
+    engagementScore?: number;
+    climateScore?: number;
+    accuracyScore?: number;
+  } | null
+): ScoreCardData[] => {
+  if (!summary) return [];
+  const metrics = [
+    { key: "roleExpectationScore", label: "役割期待スコア", value: summary.roleExpectationScore, color: "blue" as const },
+    { key: "engagementScore", label: "エンゲージメント", value: summary.engagementScore, color: "green" as const },
+    { key: "climateScore", label: "組織風土スコア", value: summary.climateScore, color: "amber" as const },
+    { key: "accuracyScore", label: "認識一致スコア", value: summary.accuracyScore, color: "orange" as const },
+  ];
+  return metrics
+    .filter((metric) => typeof metric.value === "number")
+    .map((metric) => ({
+      key: metric.key,
+      label: metric.label,
+      value: `${Math.round(metric.value ?? 0)}点`,
+      color: metric.color,
+    }));
+};
+
+const mapValuePoints = (
+  values: Array<{
+    employeeId?: string;
+    displayName?: string;
+    divisionName?: string | null;
+    scoreExploreExploit?: number;
+    scoreLongShort?: number;
+    scoreAssertListen?: number;
+    scoreExpressSuppress?: number;
+    kizunaHumanScore?: number;
+    kizunaOrgScore?: number;
+    phaseScore?: number;
+  }>,
+  axis: "explore-use" | "express-restrain"
+): ValueMapPoint[] =>
+  values.map((value) => {
+    const x =
+      axis === "explore-use"
+        ? toNumber(value.scoreLongShort)
+        : toNumber(value.scoreAssertListen);
+    const y =
+      axis === "explore-use"
+        ? toNumber(value.scoreExploreExploit)
+        : toNumber(value.scoreExpressSuppress);
+    const phaseScore = toNumber(value.phaseScore, 50);
+    return {
+      id: value.employeeId ?? "",
+      name: value.displayName ?? "未設定",
+      subtitle: value.divisionName ?? "部署未設定",
+      x,
+      y,
+      kizunaScore: toNumber(value.kizunaHumanScore),
+      phase: `フェーズ${phaseScore}`,
+      phaseTone: phaseToneFromScore(phaseScore),
+      description: `組織スコア: ${toNumber(value.kizunaOrgScore)} / 100`,
+    };
+  });
 
 const alertNumericId = (id: string) => parseInt(id, 10) || 0;
 
@@ -48,18 +146,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     const load = async () => {
-      // TODO: API 実装後は useQuery 化する
-      const [options, fetchedAlerts, exploreUsePoints, expressRestrainPoints] =
-        await Promise.all([
-          fetchSurveyOptions(),
-          fetchAlerts(),
-          fetchValueMapPoints("explore-use"),
-          fetchValueMapPoints("express-restrain"),
-        ]);
+      const listResponse = await DashboardService.getDashboardList();
+      const options = (listResponse.surveys ?? []).map((survey) => ({
+        id: survey.surveyId ?? "",
+        name: survey.surveyName ?? "無題サーベイ",
+        executedAt: toDateLabel(survey.implementationDate),
+      }));
       setSurveyOptions(options);
-      setAlerts(fetchedAlerts);
-      setValueMapExploreUse(exploreUsePoints);
-      setValueMapExpressRestrain(expressRestrainPoints);
       setSelectedSurveyId((prev) => prev || options[0]?.id || "");
     };
     void load();
@@ -71,9 +164,22 @@ const Dashboard = () => {
       return;
     }
     const loadSnapshot = async () => {
-      // TODO: API 実装後は useQuery 化する
-      const response = await fetchSurveySnapshot(selectedSurveyId);
-      setSnapshot(response);
+      const response = await DashboardService.getDashboard(selectedSurveyId);
+      const summary = response.summary;
+      setSnapshot(
+        summary
+          ? {
+              overallScore: toNumber(summary.kizunaScore),
+              scoreCards: buildScoreCards(summary),
+              previousDelta: toNumber(summary.kizunaChangeScore),
+            }
+          : null
+      );
+      setAlerts(parseAlertItems(summary?.alertTop10));
+      setValueMapExploreUse(mapValuePoints(response.values ?? [], "explore-use"));
+      setValueMapExpressRestrain(
+        mapValuePoints(response.values ?? [], "express-restrain")
+      );
     };
     void loadSnapshot();
   }, [selectedSurveyId]);

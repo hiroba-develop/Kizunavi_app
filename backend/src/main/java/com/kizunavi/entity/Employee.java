@@ -5,7 +5,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 従業員テーブル: 経営陣(kizuna_level=2)はdivision_id/section_idともNULLで運用
@@ -49,6 +51,7 @@ public class Employee {
     private LocalDate hireDate;
 
     /** 削除フラグ (0:有効 1:削除, 退職者用) */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "del_flg", length = 1)
     private String delFlg;
 

@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 部テーブル: 企業ごとの部を管理
@@ -36,6 +38,7 @@ public class Division {
     private String displayName;
 
     /** 削除フラグ (0:有効 1:削除) */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "del_flg", length = 1)
     private String delFlg;
 

@@ -306,7 +306,7 @@ CREATE TABLE ALERT_RULES (
     created_at       TIMESTAMP(6)   DEFAULT SYSTIMESTAMP NOT NULL,
     updated_at       TIMESTAMP(6)   DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT PK_ALERT_RULES PRIMARY KEY (rule_no) USING INDEX TABLESPACE KIZUNAVI_INDEX,
-    CONSTRAINT CK_ALERT_RULES_IMPORTANCE CHECK (importance IN ('High','Middle','Low'))
+    CONSTRAINT CK_ALERT_RULES_IMPORTANCE CHECK (importance IN ('高','中','低'))
 ) TABLESPACE KIZUNAVI_TABLE;
 
 COMMENT ON TABLE  ALERT_RULES                IS 'アラートルールマスタ: ダッシュボードのアラートチェック32項目をDB管理';
@@ -314,7 +314,7 @@ COMMENT ON COLUMN ALERT_RULES.rule_no        IS 'ルールNo (1〜32, PK)';
 COMMENT ON COLUMN ALERT_RULES.category       IS 'カテゴリ (従業員エンゲージメント / キズナ度 / 組織温度 等)';
 COMMENT ON COLUMN ALERT_RULES.item_name      IS '項目名';
 COMMENT ON COLUMN ALERT_RULES.alert_comment  IS 'コメント (プレースホルダー含む文言)';
-COMMENT ON COLUMN ALERT_RULES.importance     IS '重要度 (High / Middle / Low)';
+COMMENT ON COLUMN ALERT_RULES.importance     IS '重要度 (高 / 中 / 低)';
 COMMENT ON COLUMN ALERT_RULES.priority_order IS '優先順位 (1が最高優先)';
 COMMENT ON COLUMN ALERT_RULES.created_at     IS '作成日時';
 COMMENT ON COLUMN ALERT_RULES.updated_at     IS '更新日時';

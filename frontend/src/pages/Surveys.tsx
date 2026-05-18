@@ -2,15 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { SurveyDistribution as SurveyDistributionType } from "../types/survey";
 import type { Employee, EmployeeRole, EmployeeRoleLabels } from "../types/employee";
+import { EmployeesService, SurveysService } from "../api";
 import {
   DEFAULT_EMPLOYEE_ROLE_LABELS,
   EMPLOYEE_ROLES_IN_ORDER,
 } from "../types/employee";
-import {
-  fetchEmployeeRoleLabels,
-  fetchEmployees,
-} from "../services/employeeService";
-import { createSurvey, fetchSurveys } from "../services/surveyService";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -31,6 +27,115 @@ const buildSurveyAnswerUrl = (surveyId: string) =>
     `${import.meta.env.BASE_URL}survey/${surveyId}`,
     window.location.origin
   ).href;
+
+const ROLE_TO_KIZUNA_LEVEL: Record<EmployeeRole, number> = {
+  president: 1,
+  executive: 2,
+  division_head: 3,
+  section_head: 4,
+  staff: 5,
+};
+
+const fetchEmployees = async (): Promise<Employee[]> => {
+  const response = await EmployeesService.getEmployees();
+  const KIZUNA_LEVEL_TO_ROLE: Record<number, EmployeeRole> = {
+    1: "president",
+    2: "executive",
+    3: "division_head",
+    4: "section_head",
+    5: "staff",
+  };
+  return (response.employees ?? []).map((employee) => ({
+    id: employee.employeeId ?? "",
+    displayName: employee.displayName ?? "",
+    email: employee.email ?? "",
+    appRole: employee.role === "ROLE_ADMIN" ? "管理者" : "一般ユーザー",
+    departmentDivision: employee.divisionName ?? "",
+    departmentSection: employee.sectionName ?? "",
+    role: KIZUNA_LEVEL_TO_ROLE[employee.kizunaLevel ?? 5] ?? "staff",
+    joinedAt: employee.hireDate ?? "",
+  }));
+};
+
+const fetchEmployeeRoleLabels = async (): Promise<EmployeeRoleLabels> => {
+  const response = await EmployeesService.getRoleLabels();
+  const byLevel = new Map<number, string>();
+  for (const label of response.roleLabels ?? []) {
+    if (label.kizunaLevel && label.displayName) {
+      byLevel.set(label.kizunaLevel, label.displayName);
+    }
+  }
+  return {
+    president:
+      byLevel.get(ROLE_TO_KIZUNA_LEVEL.president) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.president,
+    executive:
+      byLevel.get(ROLE_TO_KIZUNA_LEVEL.executive) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.executive,
+    division_head:
+      byLevel.get(ROLE_TO_KIZUNA_LEVEL.division_head) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.division_head,
+    section_head:
+      byLevel.get(ROLE_TO_KIZUNA_LEVEL.section_head) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.section_head,
+    staff:
+      byLevel.get(ROLE_TO_KIZUNA_LEVEL.staff) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.staff,
+  };
+};
+
+const fetchSurveys = async (): Promise<SurveyDistributionType[]> => {
+  const response = await SurveysService.getSurveys();
+  return (response.surveys ?? []).map((survey) => {
+    const recipients =
+      survey.respondents?.map((respondent) => ({
+        employeeId: respondent.employeeId ?? "",
+        hasResponded: Boolean(respondent.answeredAt),
+        respondedAt: respondent.answeredAt ?? undefined,
+      })) ?? [];
+    const status: SurveyDistributionType["status"] =
+      survey.answerDeadline && new Date(survey.answerDeadline) < new Date()
+        ? "expired"
+        : "active";
+
+    return {
+      id: survey.surveyId ?? "",
+      title: survey.surveyName ?? "無題サーベイ",
+      targetRoles: [...EMPLOYEE_ROLES_IN_ORDER],
+      startDate: survey.createdAt?.slice(0, 10) ?? today(),
+      expirationDate: survey.answerDeadline ?? "",
+      status,
+      createdAt: survey.createdAt?.slice(0, 10) ?? today(),
+      recipients,
+    };
+  });
+};
+
+const createSurvey = async (input: {
+  title: string;
+  description: string;
+  expirationDate: string;
+  targetRoles: EmployeeRole[];
+  recipients: { employeeId: string; hasResponded: boolean }[];
+}): Promise<SurveyDistributionType> => {
+  const response = await SurveysService.createSurvey({
+    surveyName: input.title,
+    description: input.description || null,
+    answerDeadline: input.expirationDate,
+  });
+
+  return {
+    id: response.surveyId ?? `srv-${Date.now()}`,
+    title: input.title,
+    description: input.description,
+    targetRoles: input.targetRoles,
+    startDate: today(),
+    expirationDate: input.expirationDate,
+    status: "active",
+    createdAt: today(),
+    recipients: input.recipients,
+  };
+};
 
 const Surveys = () => {
   const [surveys, setSurveys] = useState<SurveyDistributionType[]>([]);

@@ -5,6 +5,7 @@ import {
   DEFAULT_EMPLOYEE_ROLE_LABELS,
   EMPLOYEE_ROLES_IN_ORDER,
 } from "../types/employee";
+import { EmployeesService, Role } from "../api";
 import type {
   DivisionWithSections,
   Employee,
@@ -12,21 +13,6 @@ import type {
   EmployeeRoleLabels,
   EmployeeRole,
 } from "../types/employee";
-import {
-  addDivision as addDivisionService,
-  addSection as addSectionService,
-  createEmployee,
-  deleteDivision as deleteDivisionService,
-  deleteEmployee,
-  deleteSection as deleteSectionService,
-  fetchDepartmentHierarchy,
-  fetchEmployeeRoleLabels,
-  fetchEmployees,
-  renameDivision as renameDivisionService,
-  renameSection as renameSectionService,
-  updateEmployee,
-  updateEmployeeRoleLabels,
-} from "../services/employeeService";
 
 const AVATAR_PALETTES = [
   { bg: "bg-sky-100", text: "text-sky-700" },
@@ -108,6 +94,227 @@ const isCurrentFiscalYear = (joinedAt: string) => {
   const fyStart = new Date(fyStartYear, 3, 1);
   const fyEnd = new Date(fyStartYear + 1, 3, 1);
   return date >= fyStart && date < fyEnd;
+};
+
+const ROLE_TO_KIZUNA_LEVEL: Record<EmployeeRole, number> = {
+  president: 1,
+  executive: 2,
+  division_head: 3,
+  section_head: 4,
+  staff: 5,
+};
+
+const KIZUNA_LEVEL_TO_ROLE: Record<number, EmployeeRole> = {
+  1: "president",
+  2: "executive",
+  3: "division_head",
+  4: "section_head",
+  5: "staff",
+};
+
+const ROLE_LEVELS_IN_ORDER = EMPLOYEE_ROLES_IN_ORDER.map(
+  (role) => ROLE_TO_KIZUNA_LEVEL[role]
+);
+
+const toEmployeeAppRole = (role?: Role): EmployeeAppRole =>
+  role === Role.ROLE_ADMIN ? "管理者" : "一般ユーザー";
+
+const toApiRole = (role: EmployeeAppRole): Role =>
+  role === "管理者" ? Role.ROLE_ADMIN : Role.ROLE_USER;
+
+const toEmployeeRole = (kizunaLevel?: number): EmployeeRole =>
+  KIZUNA_LEVEL_TO_ROLE[kizunaLevel ?? 5] ?? "staff";
+
+const buildTempPassword = (): string => {
+  if (typeof crypto?.randomUUID === "function") {
+    return `Tmp#${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}aA1`;
+  }
+  return `Tmp#${Date.now()}aA1`;
+};
+
+const resolveDivision = async (divisionName: string) => {
+  const divisions = (await EmployeesService.getDivisions()).divisions ?? [];
+  return (
+    divisions.find((division) => division.displayName === divisionName) ?? null
+  );
+};
+
+const resolveSection = async (divisionId: string, sectionName: string) => {
+  const sections = (await EmployeesService.getSections(divisionId)).sections ?? [];
+  return sections.find((section) => section.displayName === sectionName) ?? null;
+};
+
+const resolveDepartmentIds = async (employee: Employee) => {
+  if (employee.role === "executive") {
+    return { divisionId: null as string | null, sectionId: null as string | null };
+  }
+  const division = await resolveDivision(employee.departmentDivision);
+  const divisionId = division?.divisionId ?? null;
+  if (!divisionId || !employee.departmentSection) {
+    return { divisionId, sectionId: null as string | null };
+  }
+  const section = await resolveSection(divisionId, employee.departmentSection);
+  return { divisionId, sectionId: section?.sectionId ?? null };
+};
+
+const fetchEmployees = async (): Promise<Employee[]> => {
+  const response = await EmployeesService.getEmployees();
+  return (response.employees ?? []).map((employee) => ({
+    id: employee.employeeId ?? "",
+    displayName: employee.displayName ?? "",
+    email: employee.email ?? "",
+    appRole: toEmployeeAppRole(employee.role),
+    departmentDivision: employee.divisionName ?? "",
+    departmentSection: employee.sectionName ?? "",
+    role: toEmployeeRole(employee.kizunaLevel),
+    joinedAt: employee.hireDate ?? "",
+  }));
+};
+
+const fetchDepartmentHierarchy = async (): Promise<DivisionWithSections[]> => {
+  const [divisionResponse, sectionResponse] = await Promise.all([
+    EmployeesService.getDivisions(),
+    EmployeesService.getSections(),
+  ]);
+  const sectionsByDivisionId = new Map<string, string[]>();
+  for (const section of sectionResponse.sections ?? []) {
+    const divisionId = section.divisionId;
+    const sectionName = section.displayName;
+    if (!divisionId || !sectionName) continue;
+    const current = sectionsByDivisionId.get(divisionId) ?? [];
+    current.push(sectionName);
+    sectionsByDivisionId.set(divisionId, current);
+  }
+  return (divisionResponse.divisions ?? []).map((division) => ({
+    name: division.displayName ?? "",
+    sections: sectionsByDivisionId.get(division.divisionId ?? "") ?? [],
+  }));
+};
+
+const fetchEmployeeRoleLabels = async (): Promise<EmployeeRoleLabels> => {
+  const response = await EmployeesService.getRoleLabels();
+  const labelByLevel = new Map<number, string>();
+  for (const label of response.roleLabels ?? []) {
+    if (label.kizunaLevel && label.displayName) {
+      labelByLevel.set(label.kizunaLevel, label.displayName);
+    }
+  }
+  return {
+    president:
+      labelByLevel.get(ROLE_TO_KIZUNA_LEVEL.president) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.president,
+    executive:
+      labelByLevel.get(ROLE_TO_KIZUNA_LEVEL.executive) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.executive,
+    division_head:
+      labelByLevel.get(ROLE_TO_KIZUNA_LEVEL.division_head) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.division_head,
+    section_head:
+      labelByLevel.get(ROLE_TO_KIZUNA_LEVEL.section_head) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.section_head,
+    staff:
+      labelByLevel.get(ROLE_TO_KIZUNA_LEVEL.staff) ??
+      DEFAULT_EMPLOYEE_ROLE_LABELS.staff,
+  };
+};
+
+const createEmployee = async (employee: Employee): Promise<Employee> => {
+  const departmentIds = await resolveDepartmentIds(employee);
+  const response = await EmployeesService.createEmployee({
+    displayName: employee.displayName,
+    email: employee.email,
+    role: toApiRole(employee.appRole),
+    kizunaLevel: ROLE_TO_KIZUNA_LEVEL[employee.role],
+    divisionId: departmentIds.divisionId,
+    sectionId: departmentIds.sectionId,
+    hireDate: employee.joinedAt || null,
+    tempPassword: buildTempPassword(),
+  });
+  return { ...employee, id: response.employeeId ?? employee.id };
+};
+
+const updateEmployee = async (employee: Employee): Promise<Employee> => {
+  const departmentIds = await resolveDepartmentIds(employee);
+  await EmployeesService.updateEmployee(employee.id, {
+    displayName: employee.displayName,
+    email: employee.email,
+    role: toApiRole(employee.appRole),
+    kizunaLevel: ROLE_TO_KIZUNA_LEVEL[employee.role],
+    divisionId: departmentIds.divisionId,
+    sectionId: departmentIds.sectionId,
+    hireDate: employee.joinedAt || null,
+  });
+  return employee;
+};
+
+const deleteEmployee = async (employeeId: string): Promise<void> => {
+  await EmployeesService.deleteEmployee(employeeId);
+};
+
+const apiAddDivision = async (name: string): Promise<void> => {
+  await EmployeesService.createDivision({ displayName: name });
+};
+
+const apiRenameDivision = async (from: string, to: string): Promise<void> => {
+  const division = await resolveDivision(from);
+  if (!division?.divisionId) return;
+  await EmployeesService.updateDivision(division.divisionId, { displayName: to });
+};
+
+const apiDeleteDivision = async (name: string): Promise<void> => {
+  const division = await resolveDivision(name);
+  if (!division?.divisionId) return;
+  await EmployeesService.deleteDivision(division.divisionId);
+};
+
+const apiAddSection = async (
+  divisionName: string,
+  sectionName: string
+): Promise<void> => {
+  const division = await resolveDivision(divisionName);
+  if (!division?.divisionId) return;
+  await EmployeesService.createSection({
+    divisionId: division.divisionId,
+    displayName: sectionName,
+  });
+};
+
+const apiRenameSection = async (
+  divisionName: string,
+  from: string,
+  to: string
+): Promise<void> => {
+  const division = await resolveDivision(divisionName);
+  if (!division?.divisionId) return;
+  const section = await resolveSection(division.divisionId, from);
+  if (!section?.sectionId) return;
+  await EmployeesService.updateSection(section.sectionId, {
+    displayName: to,
+    divisionId: division.divisionId,
+  });
+};
+
+const apiDeleteSection = async (
+  divisionName: string,
+  sectionName: string
+): Promise<void> => {
+  const division = await resolveDivision(divisionName);
+  if (!division?.divisionId) return;
+  const section = await resolveSection(division.divisionId, sectionName);
+  if (!section?.sectionId) return;
+  await EmployeesService.deleteSection(section.sectionId);
+};
+
+const updateEmployeeRoleLabels = async (
+  labels: EmployeeRoleLabels
+): Promise<void> => {
+  for (const level of ROLE_LEVELS_IN_ORDER) {
+    const role = KIZUNA_LEVEL_TO_ROLE[level];
+    if (!role) continue;
+    await EmployeesService.updateRoleLabel(level, {
+      displayName: labels[role],
+    });
+  }
 };
 
 function HierarchyMasterEditor({
@@ -746,7 +953,7 @@ const Employees = () => {
     if (!label) return "名称を入力してください";
     if (departmentHierarchy.some((d) => d.name === label))
       return "同じ名前が既にあります";
-    await addDivisionService(label);
+    await apiAddDivision(label);
     setDepartmentHierarchy((prev) => [...prev, { name: label, sections: [] }]);
   };
 
@@ -755,7 +962,7 @@ const Employees = () => {
     if (from === to) return undefined;
     if (departmentHierarchy.some((d) => d.name === to))
       return "同じ名前が既にあります";
-    await renameDivisionService(from, to);
+    await apiRenameDivision(from, to);
     setDepartmentHierarchy((prev) =>
       prev.map((d) => (d.name === from ? { ...d, name: to } : d))
     );
@@ -778,7 +985,7 @@ const Employees = () => {
     if (inUse) {
       return "この部を使用しているユーザーがいるため削除できません";
     }
-    await deleteDivisionService(label);
+    await apiDeleteDivision(label);
     setDepartmentHierarchy((prev) => prev.filter((d) => d.name !== label));
   };
 
@@ -787,7 +994,7 @@ const Employees = () => {
     const div = departmentHierarchy.find((d) => d.name === divisionName);
     if (!div) return "部署が見つかりません";
     if (div.sections.includes(sectionName)) return "同じ名前が既にあります";
-    await addSectionService(divisionName, sectionName);
+    await apiAddSection(divisionName, sectionName);
     setDepartmentHierarchy((prev) =>
       prev.map((d) =>
         d.name === divisionName
@@ -807,7 +1014,7 @@ const Employees = () => {
     const div = departmentHierarchy.find((d) => d.name === divisionName);
     if (!div) return "部署が見つかりません";
     if (div.sections.includes(to)) return "同じ名前が既にあります";
-    await renameSectionService(divisionName, from, to);
+    await apiRenameSection(divisionName, from, to);
     setDepartmentHierarchy((prev) =>
       prev.map((d) =>
         d.name === divisionName
@@ -843,7 +1050,7 @@ const Employees = () => {
     if (inUse) {
       return "この課を使用しているユーザーがいるため削除できません";
     }
-    await deleteSectionService(divisionName, sectionName);
+    await apiDeleteSection(divisionName, sectionName);
     setDepartmentHierarchy((prev) =>
       prev.map((d) =>
         d.name === divisionName

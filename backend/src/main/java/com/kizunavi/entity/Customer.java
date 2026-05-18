@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 利用企業テーブル: テナントとなる利用企業の基本情報・契約情報
@@ -44,6 +46,7 @@ public class Customer {
     private Integer industry;
 
     /** 郵便番号 (ハイフン含む xxx-xxxx 形式) */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "postal_num", length = 8)
     private String postalNum;
 
@@ -60,6 +63,7 @@ public class Customer {
     private String mail;
 
     /** 削除フラグ (0:有効 1:削除) */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "del_flg", length = 1)
     private String delFlg;
 
