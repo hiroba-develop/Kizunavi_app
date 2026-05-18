@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ALERT_CATEGORIES,
-  ALERT_CATEGORY_DISPLAY_ORDER,
-  DISPLAY_ALERT_LIMIT,
   fetchAlerts,
   fetchSurveyOptions,
   fetchSurveySnapshot,
   fetchValueMapPoints,
 } from "../services/dashboardService";
+import {
+  ALERT_CATEGORIES,
+  ALERT_CATEGORY_DISPLAY_ORDER,
+  DISPLAY_ALERT_LIMIT,
+} from "../types/dashboard";
 import type {
   AlertItem,
   ScoreCardData,

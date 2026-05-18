@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import {
+  APP_ROLE_OPTIONS,
+  DEFAULT_EMPLOYEE_ROLE_LABELS,
+  EMPLOYEE_ROLES_IN_ORDER,
+} from "../types/employee";
 import type {
   DivisionWithSections,
   Employee,
@@ -8,9 +13,6 @@ import type {
   EmployeeRole,
 } from "../types/employee";
 import {
-  APP_ROLE_OPTIONS,
-  DEFAULT_EMPLOYEE_ROLE_LABELS,
-  EMPLOYEE_ROLES_IN_ORDER,
   addDivision as addDivisionService,
   addSection as addSectionService,
   createEmployee,

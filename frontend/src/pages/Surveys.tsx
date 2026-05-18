@@ -5,6 +5,8 @@ import type { Employee, EmployeeRole, EmployeeRoleLabels } from "../types/employ
 import {
   DEFAULT_EMPLOYEE_ROLE_LABELS,
   EMPLOYEE_ROLES_IN_ORDER,
+} from "../types/employee";
+import {
   fetchEmployeeRoleLabels,
   fetchEmployees,
 } from "../services/employeeService";

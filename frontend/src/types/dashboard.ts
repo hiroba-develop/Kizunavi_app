@@ -11,6 +11,10 @@ export interface AlertItem {
   description: string;
 }
 
+export const ALERT_CATEGORIES: string[] = ["すべて"];
+export const ALERT_CATEGORY_DISPLAY_ORDER: string[] = ["すべて"];
+export const DISPLAY_ALERT_LIMIT = 50;
+
 export type ScoreCardColor =
   | "gray"
   | "orange"

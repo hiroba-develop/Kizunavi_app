@@ -5,10 +5,6 @@ import type {
   ValueMapPoint,
 } from "../types/dashboard";
 
-export const ALERT_CATEGORIES: string[] = ["すべて"];
-export const ALERT_CATEGORY_DISPLAY_ORDER: string[] = ["すべて"];
-export const DISPLAY_ALERT_LIMIT = 50;
-
 export const fetchSurveyOptions = async (): Promise<SurveyOption[]> => {
   // TODO: API 実装後に apiClient + 生成コードへ差し替える
   return [];
