@@ -1507,11 +1507,11 @@ components:
         scoreExpressSuppress:
           type: number
           example: 0.71
-        kizuna_human_score:
+        kizunaHumanScore:
           type: number
           description: クリック時に使用
           example: 72.0
-        kizuna_org_score:
+        kizunaOrgScore:
           type: number
           description: クリック時に使用
           example: 70.0
