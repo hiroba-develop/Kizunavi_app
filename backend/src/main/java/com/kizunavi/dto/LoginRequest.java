@@ -44,11 +44,11 @@ public class LoginRequest {
   }
 
   /**
-   * メールアドレス
+   * メールアドレス（USERS.email）
    * @return email
    */
   @NotNull @jakarta.validation.constraints.Email 
-  @Schema(name = "email", example = "user@example.com", description = "メールアドレス", requiredMode = Schema.RequiredMode.REQUIRED)
+  @Schema(name = "email", example = "yamada.taro@example.co.jp", description = "メールアドレス（USERS.email）", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("email")
   public String getEmail() {
     return email;
@@ -64,11 +64,11 @@ public class LoginRequest {
   }
 
   /**
-   * パスワード
+   * パスワード（BCrypt検証対象）
    * @return password
    */
-  @NotNull 
-  @Schema(name = "password", example = "password123", description = "パスワード", requiredMode = Schema.RequiredMode.REQUIRED)
+  @NotNull @Size(min = 8, max = 100) 
+  @Schema(name = "password", example = "P@ssw0rd123", description = "パスワード（BCrypt検証対象）", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("password")
   public String getPassword() {
     return password;

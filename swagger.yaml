@@ -6,12 +6,6 @@ info:
   contact:
     name: KizuNavi Team
 
-servers:
-  - url: http://localhost:8080
-    description: ローカル開発サーバー
-  - url: https://api.example.com
-    description: 本番サーバー
-
 security:
   - bearerAuth: []
 

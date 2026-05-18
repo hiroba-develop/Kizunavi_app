@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type Sort = {
-    empty?: boolean;
-    sorted?: boolean;
-    unsorted?: boolean;
+export type ForgotPasswordRequest = {
+    /**
+     * メールアドレス（USERS.emailで検索）
+     */
+    email: string;
 };
 

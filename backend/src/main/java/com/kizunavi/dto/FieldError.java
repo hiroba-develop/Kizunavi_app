@@ -61,7 +61,7 @@ public class FieldError {
    * @return message
    */
   
-  @Schema(name = "message", example = "必須項目です", description = "エラーメッセージ", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @Schema(name = "message", example = "メールアドレスの形式が正しくありません", description = "エラーメッセージ", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("message")
   public String getMessage() {
     return message;
@@ -81,7 +81,7 @@ public class FieldError {
    * @return rejectedValue
    */
   
-  @Schema(name = "rejectedValue", example = "", description = "拒否された値", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @Schema(name = "rejectedValue", example = "invalid-email", description = "拒否された値", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("rejectedValue")
   public JsonNullable<Object> getRejectedValue() {
     return rejectedValue;

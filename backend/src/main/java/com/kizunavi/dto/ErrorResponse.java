@@ -9,8 +9,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
+import java.util.NoSuchElementException;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
@@ -30,18 +32,33 @@ import jakarta.annotation.Generated;
 public class ErrorResponse {
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-  private @Nullable LocalDateTime timestamp;
+  private LocalDateTime timestamp;
 
-  private @Nullable Integer status;
+  private Integer status;
 
-  private @Nullable String error;
+  private String error;
 
-  private @Nullable String message;
+  private String message;
 
-  private @Nullable String path;
+  private String path;
 
   @Valid
-  private List<@Valid FieldError> fieldErrors = new ArrayList<>();
+  private JsonNullable<List<@Valid FieldError>> fieldErrors = JsonNullable.<List<@Valid FieldError>>undefined();
+
+  public ErrorResponse() {
+    super();
+  }
+
+  /**
+   * Constructor with only required parameters
+   */
+  public ErrorResponse(LocalDateTime timestamp, Integer status, String error, String message, String path) {
+    this.timestamp = timestamp;
+    this.status = status;
+    this.error = error;
+    this.message = message;
+    this.path = path;
+  }
 
   public ErrorResponse timestamp(LocalDateTime timestamp) {
     this.timestamp = timestamp;
@@ -52,8 +69,8 @@ public class ErrorResponse {
    * エラー発生日時
    * @return timestamp
    */
-  @Valid 
-  @Schema(name = "timestamp", description = "エラー発生日時", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @NotNull @Valid 
+  @Schema(name = "timestamp", example = "2026-05-01T09:00Z", description = "エラー発生日時", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("timestamp")
   public LocalDateTime getTimestamp() {
     return timestamp;
@@ -72,8 +89,8 @@ public class ErrorResponse {
    * HTTPステータスコード
    * @return status
    */
-  
-  @Schema(name = "status", example = "400", description = "HTTPステータスコード", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @NotNull 
+  @Schema(name = "status", example = "400", description = "HTTPステータスコード", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("status")
   public Integer getStatus() {
     return status;
@@ -92,8 +109,8 @@ public class ErrorResponse {
    * エラーコード
    * @return error
    */
-  
-  @Schema(name = "error", example = "VALIDATION_ERROR", description = "エラーコード", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @NotNull 
+  @Schema(name = "error", example = "VALIDATION_ERROR", description = "エラーコード", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("error")
   public String getError() {
     return error;
@@ -112,8 +129,8 @@ public class ErrorResponse {
    * エラーメッセージ
    * @return message
    */
-  
-  @Schema(name = "message", example = "入力値が不正です", description = "エラーメッセージ", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @NotNull 
+  @Schema(name = "message", example = "入力値が不正です", description = "エラーメッセージ", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("message")
   public String getMessage() {
     return message;
@@ -132,8 +149,8 @@ public class ErrorResponse {
    * リクエストパス
    * @return path
    */
-  
-  @Schema(name = "path", example = "/api/auth/login", description = "リクエストパス", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @NotNull 
+  @Schema(name = "path", example = "/api/auth/login", description = "リクエストパス", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("path")
   public String getPath() {
     return path;
@@ -144,15 +161,15 @@ public class ErrorResponse {
   }
 
   public ErrorResponse fieldErrors(List<@Valid FieldError> fieldErrors) {
-    this.fieldErrors = fieldErrors;
+    this.fieldErrors = JsonNullable.of(fieldErrors);
     return this;
   }
 
   public ErrorResponse addFieldErrorsItem(FieldError fieldErrorsItem) {
-    if (this.fieldErrors == null) {
-      this.fieldErrors = new ArrayList<>();
+    if (this.fieldErrors == null || !this.fieldErrors.isPresent()) {
+      this.fieldErrors = JsonNullable.of(new ArrayList<>());
     }
-    this.fieldErrors.add(fieldErrorsItem);
+    this.fieldErrors.get().add(fieldErrorsItem);
     return this;
   }
 
@@ -163,11 +180,11 @@ public class ErrorResponse {
   @Valid 
   @Schema(name = "fieldErrors", description = "フィールドごとのバリデーションエラー（バリデーションエラー時のみ）", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("fieldErrors")
-  public List<@Valid FieldError> getFieldErrors() {
+  public JsonNullable<List<@Valid FieldError>> getFieldErrors() {
     return fieldErrors;
   }
 
-  public void setFieldErrors(List<@Valid FieldError> fieldErrors) {
+  public void setFieldErrors(JsonNullable<List<@Valid FieldError>> fieldErrors) {
     this.fieldErrors = fieldErrors;
   }
 
@@ -185,12 +202,23 @@ public class ErrorResponse {
         Objects.equals(this.error, errorResponse.error) &&
         Objects.equals(this.message, errorResponse.message) &&
         Objects.equals(this.path, errorResponse.path) &&
-        Objects.equals(this.fieldErrors, errorResponse.fieldErrors);
+        equalsNullable(this.fieldErrors, errorResponse.fieldErrors);
+  }
+
+  private static <T> boolean equalsNullable(JsonNullable<T> a, JsonNullable<T> b) {
+    return a == b || (a != null && b != null && a.isPresent() && b.isPresent() && Objects.deepEquals(a.get(), b.get()));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(timestamp, status, error, message, path, fieldErrors);
+    return Objects.hash(timestamp, status, error, message, path, hashCodeNullable(fieldErrors));
+  }
+
+  private static <T> int hashCodeNullable(JsonNullable<T> a) {
+    if (a == null) {
+      return 1;
+    }
+    return a.isPresent() ? Arrays.deepHashCode(new Object[]{a.get()}) : 31;
   }
 
   @Override

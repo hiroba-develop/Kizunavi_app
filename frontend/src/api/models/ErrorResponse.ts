@@ -10,26 +10,26 @@ export type ErrorResponse = {
     /**
      * エラー発生日時
      */
-    timestamp?: string;
+    timestamp: string;
     /**
      * HTTPステータスコード
      */
-    status?: number;
+    status: number;
     /**
      * エラーコード
      */
-    error?: string;
+    error: string;
     /**
      * エラーメッセージ
      */
-    message?: string;
+    message: string;
     /**
      * リクエストパス
      */
-    path?: string;
+    path: string;
     /**
      * フィールドごとのバリデーションエラー（バリデーションエラー時のみ）
      */
-    fieldErrors?: Array<FieldError>;
+    fieldErrors?: Array<FieldError> | null;
 };
 

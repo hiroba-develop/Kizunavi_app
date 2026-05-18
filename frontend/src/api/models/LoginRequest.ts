@@ -4,11 +4,11 @@
 /* eslint-disable */
 export type LoginRequest = {
     /**
-     * メールアドレス
+     * メールアドレス（USERS.email）
      */
     email: string;
     /**
-     * パスワード
+     * パスワード（BCrypt検証対象）
      */
     password: string;
 };

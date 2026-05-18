@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type RefreshTokenRequest = {
+export type TokenRefreshResponse = {
     /**
-     * リフレッシュトークン
+     * 新しいアクセストークン（JWT）
      */
-    refreshToken: string;
+    token: string;
 };
 

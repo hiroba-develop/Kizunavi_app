@@ -6,11 +6,15 @@
 package com.kizunavi.controller;
 
 import com.kizunavi.dto.ErrorResponse;
+import com.kizunavi.dto.FirstLoginRequest;
+import com.kizunavi.dto.ForgotPasswordRequest;
 import com.kizunavi.dto.LoginRequest;
-import com.kizunavi.dto.RefreshTokenRequest;
-import com.kizunavi.dto.SignupRequest;
-import com.kizunavi.dto.TokenResponse;
-import com.kizunavi.dto.UserResponse;
+import com.kizunavi.dto.LoginResponse;
+import com.kizunavi.dto.PasswordResetVerifyResponse;
+import com.kizunavi.dto.ResetPasswordRequest;
+import com.kizunavi.dto.SimpleStatusResponse;
+import com.kizunavi.dto.StatusMessage;
+import com.kizunavi.dto.TokenRefreshResponse;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,31 +43,95 @@ import jakarta.annotation.Generated;
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.12.0")
 @Validated
-@Tag(name = "Auth", description = "認証関連API")
+@Tag(name = "auth", description = "認証・パスワード管理")
 public interface AuthApi {
 
     /**
+     * PUT /api/auth/firstlogin : 初回パスワード設定
+     * 仮パスワードを検証し、新しいパスワードを設定する。 【前提】本APIはtempPassword（仮パスワード）をRequest Bodyに含むため、HTTPS必須。HTTP通信は許可しないこと。 
+     *
+     * @param firstLoginRequest  (required)
+     * @return パスワード設定成功 (status code 200)
+     *         or 認証エラー（トークン未指定・無効・期限切れ） (status code 401)
+     */
+    @Operation(
+        operationId = "firstLogin",
+        summary = "初回パスワード設定",
+        description = "仮パスワードを検証し、新しいパスワードを設定する。 【前提】本APIはtempPassword（仮パスワード）をRequest Bodyに含むため、HTTPS必須。HTTP通信は許可しないこと。 ",
+        tags = { "auth" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "パスワード設定成功", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = SimpleStatusResponse.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "認証エラー（トークン未指定・無効・期限切れ）", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.PUT,
+        value = "/api/auth/firstlogin",
+        produces = { "application/json" },
+        consumes = "application/json"
+    )
+    
+    ResponseEntity<SimpleStatusResponse> firstLogin(
+        @Parameter(name = "FirstLoginRequest", description = "", required = true) @Valid @RequestBody FirstLoginRequest firstLoginRequest
+    );
+
+
+    /**
+     * POST /api/auth/password/forgot : パスワード再発行メール送信
+     * 指定メールアドレス宛にパスワードリセット用URLを送信する。 セキュリティのため、メールアドレスが存在しない場合も同じレスポンスを返す。 
+     *
+     * @param forgotPasswordRequest  (required)
+     * @return 送信完了（メールアドレス不存在の場合も同じレスポンス） (status code 200)
+     */
+    @Operation(
+        operationId = "forgotPassword",
+        summary = "パスワード再発行メール送信",
+        description = "指定メールアドレス宛にパスワードリセット用URLを送信する。 セキュリティのため、メールアドレスが存在しない場合も同じレスポンスを返す。 ",
+        tags = { "auth" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "送信完了（メールアドレス不存在の場合も同じレスポンス）", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = SimpleStatusResponse.class))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = "/api/auth/password/forgot",
+        produces = { "application/json" },
+        consumes = "application/json"
+    )
+    
+    ResponseEntity<SimpleStatusResponse> forgotPassword(
+        @Parameter(name = "ForgotPasswordRequest", description = "", required = true) @Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest
+    );
+
+
+    /**
      * POST /api/auth/login : ログイン
-     * メールアドレスとパスワードで認証し、アクセストークンとリフレッシュトークンを取得する
+     * メールアドレスとパスワードで認証し、アクセストークンを取得する。
      *
      * @param loginRequest  (required)
-     * @return 認証成功 (status code 200)
-     *         or バリデーションエラー (status code 400)
-     *         or 認証失敗（メールアドレスまたはパスワードが不正） (status code 401)
+     * @return ログイン成功 (status code 200)
+     *         or 認証エラー（トークン未指定・無効・期限切れ） (status code 401)
+     *         or アカウントロック中 (status code 423)
      */
     @Operation(
         operationId = "login",
         summary = "ログイン",
-        description = "メールアドレスとパスワードで認証し、アクセストークンとリフレッシュトークンを取得する",
-        tags = { "Auth" },
+        description = "メールアドレスとパスワードで認証し、アクセストークンを取得する。",
+        tags = { "auth" },
         responses = {
-            @ApiResponse(responseCode = "200", description = "認証成功", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))
+            @ApiResponse(responseCode = "200", description = "ログイン成功", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class))
             }),
-            @ApiResponse(responseCode = "400", description = "バリデーションエラー", content = {
+            @ApiResponse(responseCode = "401", description = "認証エラー（トークン未指定・無効・期限切れ）", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             }),
-            @ApiResponse(responseCode = "401", description = "認証失敗（メールアドレスまたはパスワードが不正）", content = {
+            @ApiResponse(responseCode = "423", description = "アカウントロック中", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             })
         }
@@ -75,26 +143,29 @@ public interface AuthApi {
         consumes = "application/json"
     )
     
-    ResponseEntity<TokenResponse> login(
+    ResponseEntity<LoginResponse> login(
         @Parameter(name = "LoginRequest", description = "", required = true) @Valid @RequestBody LoginRequest loginRequest
     );
 
 
     /**
      * POST /api/auth/logout : ログアウト
-     * 現在のユーザーのリフレッシュトークンを無効化する
+     * リフレッシュトークンを失効させる。アクセストークンはステートレスのためサーバー側での無効化は不要。
      *
-     * @return ログアウト成功 (status code 204)
-     *         or 未認証 (status code 401)
+     * @param refreshToken リフレッシュトークン（HttpOnly Cookieとしてブラウザが自動送信） (required)
+     * @return ログアウト成功 (status code 200)
+     *         or 認証エラー（トークン未指定・無効・期限切れ） (status code 401)
      */
     @Operation(
         operationId = "logout",
         summary = "ログアウト",
-        description = "現在のユーザーのリフレッシュトークンを無効化する",
-        tags = { "Auth" },
+        description = "リフレッシュトークンを失効させる。アクセストークンはステートレスのためサーバー側での無効化は不要。",
+        tags = { "auth" },
         responses = {
-            @ApiResponse(responseCode = "204", description = "ログアウト成功"),
-            @ApiResponse(responseCode = "401", description = "未認証", content = {
+            @ApiResponse(responseCode = "200", description = "ログアウト成功", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = StatusMessage.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "認証エラー（トークン未指定・無効・期限切れ）", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             })
         },
@@ -108,33 +179,29 @@ public interface AuthApi {
         produces = { "application/json" }
     )
     
-    ResponseEntity<Void> logout(
-        
+    ResponseEntity<StatusMessage> logout(
+        @NotNull @Parameter(name = "refreshToken", description = "リフレッシュトークン（HttpOnly Cookieとしてブラウザが自動送信）", required = true, in = ParameterIn.COOKIE) @CookieValue(name = "refreshToken") String refreshToken
     );
 
 
     /**
      * POST /api/auth/refresh : トークンリフレッシュ
-     * リフレッシュトークンを使用して新しいアクセストークンを取得する
+     * HttpOnly CookieのrefreshTokenを使って新しいアクセストークンを発行する。 refreshTokenはブラウザが自動送信するためリクエストボディへの指定は不要。 ローテーション処理により旧refreshTokenは失効し、新しいrefreshTokenがSet-Cookieで返される。 
      *
-     * @param refreshTokenRequest  (required)
-     * @return トークンリフレッシュ成功 (status code 200)
-     *         or バリデーションエラー (status code 400)
-     *         or リフレッシュトークンが無効または期限切れ (status code 401)
+     * @param refreshToken リフレッシュトークン（HttpOnly Cookieとしてブラウザが自動送信） (required)
+     * @return トークン発行成功 (status code 200)
+     *         or 認証エラー（トークン未指定・無効・期限切れ） (status code 401)
      */
     @Operation(
         operationId = "refreshToken",
         summary = "トークンリフレッシュ",
-        description = "リフレッシュトークンを使用して新しいアクセストークンを取得する",
-        tags = { "Auth" },
+        description = "HttpOnly CookieのrefreshTokenを使って新しいアクセストークンを発行する。 refreshTokenはブラウザが自動送信するためリクエストボディへの指定は不要。 ローテーション処理により旧refreshTokenは失効し、新しいrefreshTokenがSet-Cookieで返される。 ",
+        tags = { "auth" },
         responses = {
-            @ApiResponse(responseCode = "200", description = "トークンリフレッシュ成功", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))
+            @ApiResponse(responseCode = "200", description = "トークン発行成功", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = TokenRefreshResponse.class))
             }),
-            @ApiResponse(responseCode = "400", description = "バリデーションエラー", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
-            }),
-            @ApiResponse(responseCode = "401", description = "リフレッシュトークンが無効または期限切れ", content = {
+            @ApiResponse(responseCode = "401", description = "認証エラー（トークン未指定・無効・期限切れ）", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             })
         }
@@ -142,50 +209,78 @@ public interface AuthApi {
     @RequestMapping(
         method = RequestMethod.POST,
         value = "/api/auth/refresh",
-        produces = { "application/json" },
-        consumes = "application/json"
+        produces = { "application/json" }
     )
     
-    ResponseEntity<TokenResponse> refreshToken(
-        @Parameter(name = "RefreshTokenRequest", description = "", required = true) @Valid @RequestBody RefreshTokenRequest refreshTokenRequest
+    ResponseEntity<TokenRefreshResponse> refreshToken(
+        @NotNull @Parameter(name = "refreshToken", description = "リフレッシュトークン（HttpOnly Cookieとしてブラウザが自動送信）", required = true, in = ParameterIn.COOKIE) @CookieValue(name = "refreshToken") String refreshToken
     );
 
 
     /**
-     * POST /api/auth/signup : ユーザー登録
-     * 新規ユーザーを登録する
+     * PUT /api/auth/password/reset : パスワード再設定
+     * トークンを検証し、新しいパスワードを設定する。
      *
-     * @param signupRequest  (required)
-     * @return ユーザー登録成功 (status code 201)
-     *         or バリデーションエラー (status code 400)
-     *         or メールアドレスが既に登録済み (status code 409)
+     * @param resetPasswordRequest  (required)
+     * @return パスワード更新成功 (status code 200)
+     *         or リクエストパラメータ不正 (status code 400)
+     *         or 認証エラー（トークン未指定・無効・期限切れ） (status code 401)
      */
     @Operation(
-        operationId = "signup",
-        summary = "ユーザー登録",
-        description = "新規ユーザーを登録する",
-        tags = { "Auth" },
+        operationId = "resetPassword",
+        summary = "パスワード再設定",
+        description = "トークンを検証し、新しいパスワードを設定する。",
+        tags = { "auth" },
         responses = {
-            @ApiResponse(responseCode = "201", description = "ユーザー登録成功", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = UserResponse.class))
+            @ApiResponse(responseCode = "200", description = "パスワード更新成功", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = SimpleStatusResponse.class))
             }),
-            @ApiResponse(responseCode = "400", description = "バリデーションエラー", content = {
+            @ApiResponse(responseCode = "400", description = "リクエストパラメータ不正", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             }),
-            @ApiResponse(responseCode = "409", description = "メールアドレスが既に登録済み", content = {
+            @ApiResponse(responseCode = "401", description = "認証エラー（トークン未指定・無効・期限切れ）", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             })
         }
     )
     @RequestMapping(
-        method = RequestMethod.POST,
-        value = "/api/auth/signup",
+        method = RequestMethod.PUT,
+        value = "/api/auth/password/reset",
         produces = { "application/json" },
         consumes = "application/json"
     )
     
-    ResponseEntity<UserResponse> signup(
-        @Parameter(name = "SignupRequest", description = "", required = true) @Valid @RequestBody SignupRequest signupRequest
+    ResponseEntity<SimpleStatusResponse> resetPassword(
+        @Parameter(name = "ResetPasswordRequest", description = "", required = true) @Valid @RequestBody ResetPasswordRequest resetPasswordRequest
+    );
+
+
+    /**
+     * GET /api/auth/password/reset/verify/{token} : パスワードリセットトークン検証
+     * メールのリンククリック時に呼び出し、トークンの有効性を検証する。
+     *
+     * @param token リセットトークン（PASSWORD_RESET_TOKENS.tokenHashの元値） (required)
+     * @return 検証結果 (status code 200)
+     */
+    @Operation(
+        operationId = "verifyResetToken",
+        summary = "パスワードリセットトークン検証",
+        description = "メールのリンククリック時に呼び出し、トークンの有効性を検証する。",
+        tags = { "auth" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "検証結果", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = PasswordResetVerifyResponse.class))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/api/auth/password/reset/verify/{token}",
+        produces = { "application/json" }
+    )
+    
+    ResponseEntity<PasswordResetVerifyResponse> verifyResetToken(
+        @Parameter(name = "token", description = "リセットトークン（PASSWORD_RESET_TOKENS.tokenHashの元値）", required = true, in = ParameterIn.PATH) @PathVariable("token") String token
     );
 
 }

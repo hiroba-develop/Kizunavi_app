@@ -2,18 +2,18 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SignupRequest = {
+export type FirstLoginRequest = {
     /**
      * メールアドレス
      */
     email: string;
     /**
-     * パスワード（8文字以上100文字以下）
+     * 仮パスワード（BCrypt検証）
      */
-    password: string;
+    tempPassword: string;
     /**
-     * ユーザー名（100文字以下）
+     * 新パスワード（BCryptハッシュ化）
      */
-    name: string;
+    newPassword: string;
 };
 
