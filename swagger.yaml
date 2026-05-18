@@ -688,7 +688,7 @@ paths:
   # ----------------------------------------
   # サーベイ回答
   # ----------------------------------------
-  /api/surveys/{surveyId}/answer:
+  /api/survey-answer/{surveyId}:
     get:
       tags:
         - survey-answer
