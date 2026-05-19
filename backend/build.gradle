@@ -46,9 +46,10 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     
-    // AWS SDK for SES
+    // AWS SDK
     implementation platform('software.amazon.awssdk:bom:2.29.51')
     implementation 'software.amazon.awssdk:ses'
+    implementation 'software.amazon.awssdk:secretsmanager'
     
     // Oracle JDBC Driver
     runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.6.0.24.10'
@@ -174,10 +175,6 @@ tasks.named('bootRun') {
     def dotenv = loadBackendDotEnv()
     environment dotenv
     doFirst {
-        if (!dotenv.isEmpty()) {
-            logger.lifecycle("[bootRun] backend/.env から ${dotenv.size()} 件の環境変数を適用します (DB_USERNAME=${dotenv.DB_USERNAME ?: '未設定'})")
-        }
-        logger.lifecycle('[hot-reload] gradlew -t classes をバックグラウンドで起動します')
         def builder = new ProcessBuilder()
             .directory(project.projectDir)
             .inheritIO()

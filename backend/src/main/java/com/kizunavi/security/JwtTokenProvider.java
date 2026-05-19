@@ -2,6 +2,7 @@ package com.kizunavi.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -11,10 +12,16 @@ import org.springframework.stereotype.Component;
 import com.kizunavi.config.JwtConfig;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+
+import org.springframework.util.StringUtils;
 
 /**
  * JJWT を用いた JWT の生成・パース・検証を担当する。
@@ -35,9 +42,70 @@ public class JwtTokenProvider {
      */
     public JwtTokenProvider(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
-        this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(
-            java.util.Base64.getEncoder().encodeToString(jwtConfig.getSecret().getBytes())
-        ));
+        this.secretKey = Keys.hmacShaKeyFor(resolveKeyMaterial(jwtConfig.getSecret()));
+    }
+
+    /**
+     * Secrets Manager の {@code secret} が Base64 の鍵素材・長い UTF-8 文字列・短いパスフレーズのいずれでも HS256 に適した長さへ正規化する。
+     *
+     * <p>短い文字列のみ SHA-256 で 32 バイトへ伸長する（設定変更により既存トークンは無効化される）。</p>
+     */
+    private static byte[] resolveKeyMaterial(String rawSecret) {
+        if (!StringUtils.hasText(rawSecret)) {
+            throw new IllegalStateException("jwt.secret が設定されていません。");
+        }
+        String trimmed = rawSecret.trim();
+
+        byte[] decoded = decodeBase64KeyMaterial(trimmed);
+        if (decoded != null && decoded.length >= 32) {
+            return decoded;
+        }
+
+        byte[] utf8 = trimmed.getBytes(StandardCharsets.UTF_8);
+        if (utf8.length >= 32) {
+            return utf8;
+        }
+        return sha256(utf8);
+    }
+
+    /**
+     * RFC 4648 の標準 Base64 のあと URL-safe Base64（{@code -} / {@code _}）を試す。
+     * デコード結果が 32 バイト未満なら鍵素材としては使わず {@code null} を返す。
+     */
+    private static byte[] decodeBase64KeyMaterial(String trimmed) {
+        byte[] standard = decodeStandardBase64(trimmed);
+        if (standard != null && standard.length >= 32) {
+            return standard;
+        }
+        byte[] urlSafe = decodeUrlSafeBase64(trimmed);
+        if (urlSafe != null && urlSafe.length >= 32) {
+            return urlSafe;
+        }
+        return null;
+    }
+
+    private static byte[] decodeStandardBase64(String trimmed) {
+        try {
+            return Decoders.BASE64.decode(trimmed);
+        } catch (IllegalArgumentException | DecodingException ex) {
+            return null;
+        }
+    }
+
+    private static byte[] decodeUrlSafeBase64(String trimmed) {
+        try {
+            return Base64.getUrlDecoder().decode(trimmed);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private static byte[] sha256(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 が利用できません。", ex);
+        }
     }
 
     /**

@@ -7,7 +7,7 @@ Spring Boot + React フルスタックテンプレートプロジェクトです
 - **`dev`**: 自 PC（`bootRun` / Docker Compose）と **AWS dev EC2** で共通。接続先は **dev 環境の AWS RDS Oracle・SES**（同一向き先）。
 - **`prod`**: **AWS prod EC2** のみ。接続先は **prod 環境の RDS・SES**（スキーマ・リソースは dev と別）。
 
-インメモリ DB（H2）は使用しません。**ローカル・Docker でも dev 用 RDS / SES への接続情報が必須**です。事前に [`.env.example`](.env.example) を `.env` にコピーし、`DB_*` と `AWS_*` を設定してください。
+インメモリ DB（H2）は使用しません。**DB 接続情報と JWT 署名鍵は AWS Secrets Manager を正**として管理します。事前に [`.env.example`](.env.example) を `.env` にコピーし、`AWS_SECRETS_*` と `AWS_*` を設定してください。
 
 起動場所によるログの詳しさなどは、`.env` の `LOG_LEVEL` / `JPA_SHOW_SQL` / `HIBERNATE_SQL_LOG` で調整します。
 
@@ -24,7 +24,7 @@ Product_Template/
 
 ### 前提
 
-1. ルートで `cp .env.example .env` を実行し、`SPRING_PROFILES_ACTIVE`（通常は `dev`）、`DB_URL`、`DB_USERNAME`（アプリ専用ユーザー **`template_app`**）、`DB_PASSWORD`、`AWS_*` を記入する。
+1. ルートで `cp .env.example .env` を実行し、`SPRING_PROFILES_ACTIVE`（通常は `dev`）、`AWS_SECRETS_*`、`AWS_*` を記入する。
 2. RDS Oracle にログイン用テーブルが未適用の場合は、DBA が事前に作成した **`template_app`** ユーザーで [`backend/src/main/resources/db/oracle/login_schema.sql`](backend/src/main/resources/db/oracle/login_schema.sql) を実行する（表領域・ユーザー作成の DDL はファイル先頭の `[実施済み]` コメントを参照。設計の詳細は [`docs/db/login-schema.md`](docs/db/login-schema.md)）。
 3. 既定の Compose は **`SPRING_PROFILES_ACTIVE=dev`**（`.env` 未設定時も `docker-compose.yml` のデフォルトで `dev`）。
 
@@ -38,7 +38,7 @@ Product_Template/
 
 ```bash
 cp .env.example .env
-# .env を編集（RDS・SES・JWT 等）
+# .env を編集（Secrets Manager・SES 等）
 
 docker compose up --build
 ```
