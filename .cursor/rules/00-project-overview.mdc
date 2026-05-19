@@ -14,6 +14,7 @@ alwaysApply: true
 - `backend/` … Spring Boot 3.4、Java 21、REST API（詳細は `10-backend-spring.mdc`）。
 - `frontend/` … React 18、Vite、TypeScript（詳細は `20-frontend-react.mdc`）。
 - `docs/adr/` … アーキテクチャ意思決定（MADR）。設計変更時は必ず参照し、必要なら新規 ADR を提案する（`40-adr-docs.mdc`）。
+- `docs/test/` … 単体テスト実施台帳（観点・ケース一覧）。テスト変更時は台帳を同 PR で更新（`60-testing.mdc`）。
 - ルート `swagger.yaml` … OpenAPI 契約の単一ソース（`30-openapi-contract.mdc`）。
 
 ## Spring プロファイルと DB

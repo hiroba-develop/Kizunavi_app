@@ -4,8 +4,9 @@ import { AuthLayout } from '@/components/layout/AuthLayout'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicRoute } from '@/routes/PublicRoute'
 import { LoginPage } from '@/pages/LoginPage'
-import { SignupPage } from '@/pages/SignupPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
+import { FirstLoginPage } from '@/pages/FirstLoginPage'
 import Dashboard from '@/pages/Dashboard'
 import Employees from '@/pages/Employees'
 import Surveys from '@/pages/Surveys'
@@ -30,12 +31,16 @@ export const router = createBrowserRouter([
             element: <LoginPage />,
           },
           {
-            path: '/signup',
-            element: <SignupPage />,
-          },
-          {
             path: '/forgot-password',
             element: <ForgotPasswordPage />,
+          },
+          {
+            path: '/reset-password',
+            element: <ResetPasswordPage />,
+          },
+          {
+            path: '/first-login',
+            element: <FirstLoginPage />,
           },
         ],
       },

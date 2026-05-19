@@ -59,4 +59,5 @@
 ## 関連ドキュメント
 
 - 運用手順: [docs/ops/](../ops/)
+- 単体テスト台帳: [docs/test/](../test/)（[ADR-0024](0024-testing-strategy.md) 決定事項 7）
 - ポート台帳（正）: [Google スプレッドシート](https://docs.google.com/spreadsheets/d/1pMseDeBjZCV_ppZLVuaaD78iooxR7yeXWP5jsxzJcS8/edit?gid=0#gid=0)／ルール: [docs/port-registry.md](../port-registry.md)

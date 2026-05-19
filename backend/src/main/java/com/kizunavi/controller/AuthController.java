@@ -3,116 +3,144 @@ package com.kizunavi.controller;
 import com.kizunavi.config.JwtConfig;
 import com.kizunavi.dto.*;
 import com.kizunavi.security.CookieUtil;
+import com.kizunavi.service.AuthLoginResult;
+import com.kizunavi.service.AuthRefreshResult;
 import com.kizunavi.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 認証 API（ログイン・サインアップ・トークン更新・ログアウト）の REST コントローラ。
+ * 認証 API（ログイン・トークン更新・ログアウト・パスワード管理）の REST コントローラ。
  *
- * <p>リフレッシュトークンは HttpOnly Cookie で扱い、JSON ボディからは除去して返す。</p>
+ * <p>リフレッシュトークンは HttpOnly Cookie で扱い、JSON ボディには含めない。</p>
  */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    /** 認証ユースケース。 */
     private final AuthService authService;
-    /** Cookie の Secure 属性およびトークン有効期限の参照。 */
     private final JwtConfig jwtConfig;
 
     /**
-     * ログインを実行し、アクセストークンを返却する。
+     * ログインを実行し、アクセストークンと表示名を返却する。
      *
-     * <p>リフレッシュトークンは HttpOnly Cookie として設定され、
-     * レスポンスボディの {@code refreshToken} は {@code null} に置換される。</p>
-     *
-     * @param request ログイン情報（メールアドレス・パスワード）
-     * @param response リフレッシュトークン用 Cookie を書き込む HTTP レスポンス
-     * @return アクセストークンを含む {@link TokenResponse}（{@code refreshToken} は常に {@code null}）
+     * @param request     ログイン情報
+     * @param httpRequest IP・User-Agent 取得用
+     * @param response    リフレッシュトークン Cookie 設定用
+     * @return {@link LoginResponse}
      */
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(
+    public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse response
     ) {
         String clientIp = httpRequest.getRemoteAddr();
         String userAgent = httpRequest.getHeader(HttpHeaders.USER_AGENT);
-        TokenResponse tokenResponse = authService.login(request, clientIp, userAgent);
+        AuthLoginResult result = authService.login(request, clientIp, userAgent);
         CookieUtil.addRefreshTokenCookie(
                 response,
-                tokenResponse.getRefreshToken(),
+                result.refreshToken(),
                 jwtConfig.getRefreshTokenExpiration(),
                 jwtConfig.isCookieSecure()
         );
-        tokenResponse.setRefreshToken(null);
-        return ResponseEntity.ok(tokenResponse);
+        return ResponseEntity.ok(
+            new LoginResponse(result.accessToken(), result.name())
+        );
     }
 
     /**
-     * 新規ユーザー登録を行う。
+     * Cookie のリフレッシュトークンを用いて新しいアクセストークンを発行する。
      *
-     * @param request サインアップ情報
-     * @return 作成されたユーザー情報（HTTP 201）
-     */
-    @PostMapping("/signup")
-    public ResponseEntity<UserResponse> signup(@Valid @RequestBody SignupRequest request) {
-        UserResponse userResponse = authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
-    }
-
-    /**
-     * Cookie のリフレッシュトークンを用いて新しいトークンペアを発行する。
-     *
-     * <p>新しいリフレッシュトークンは Cookie に再設定され、ボディの {@code refreshToken} は {@code null}。</p>
-     *
-     * @param request Cookie を読み取るための HTTP リクエスト
-     * @param response 新しいリフレッシュトークン用 Cookie を書き込むレスポンス
-     * @return アクセストークンを含む {@link TokenResponse}
+     * @param request  Cookie 読み取り用
+     * @param response 新リフレッシュトークン Cookie 設定用
+     * @return {@link TokenRefreshResponse}
      */
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refreshToken(
+    public ResponseEntity<TokenRefreshResponse> refreshToken(
             HttpServletRequest request,
             HttpServletResponse response
     ) {
         String refreshToken = CookieUtil.extractRefreshToken(request);
         String clientIp = request.getRemoteAddr();
         String userAgent = request.getHeader(HttpHeaders.USER_AGENT);
-        TokenResponse tokenResponse = authService.refreshToken(refreshToken, clientIp, userAgent);
+        AuthRefreshResult result = authService.refreshToken(refreshToken, clientIp, userAgent);
         CookieUtil.addRefreshTokenCookie(
                 response,
-                tokenResponse.getRefreshToken(),
+                result.refreshToken(),
                 jwtConfig.getRefreshTokenExpiration(),
                 jwtConfig.isCookieSecure()
         );
-        tokenResponse.setRefreshToken(null);
-        return ResponseEntity.ok(tokenResponse);
+        return ResponseEntity.ok(new TokenRefreshResponse(result.accessToken()));
     }
 
     /**
      * ログアウトし、サーバー側のリフレッシュトークンおよび Cookie を無効化する。
      *
-     * @param userDetails 認証済みユーザー（メールは {@code getUsername()}）
-     * @param response リフレッシュトークン Cookie を削除するレスポンス
-     * @return 本文なし（HTTP 204）
+     * @param userDetails 認証済みユーザー
+     * @param response    Cookie 削除用
+     * @return {@link StatusMessage}
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
+    public ResponseEntity<StatusMessage> logout(
             @AuthenticationPrincipal UserDetails userDetails,
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response
     ) {
         authService.logout(userDetails.getUsername());
         CookieUtil.clearRefreshTokenCookie(response, jwtConfig.isCookieSecure());
-        return ResponseEntity.noContent().build();
+        StatusMessage body = new StatusMessage("success");
+        body.setMessage(JsonNullable.of("ログアウトしました"));
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * 仮パスワードを検証し、新しいパスワードを設定する。
+     *
+     * @param request 初回ログイン情報
+     * @return 設定成功
+     */
+    @PutMapping("/firstlogin")
+    public ResponseEntity<SimpleStatusResponse> firstLogin(
+            @Valid @RequestBody FirstLoginRequest request) {
+        return ResponseEntity.ok(authService.firstLogin(request));
+    }
+
+    /**
+     * パスワードリセット用メールを送信する。
+     */
+    @PostMapping("/password/forgot")
+    public ResponseEntity<SimpleStatusResponse> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        SimpleStatusResponse status =
+            authService.forgotPassword(request, httpRequest.getRemoteAddr());
+        return ResponseEntity.ok(status);
+    }
+
+    /**
+     * パスワードリセットトークンの有効性を検証する。
+     */
+    @GetMapping("/password/reset/verify/{token}")
+    public ResponseEntity<PasswordResetVerifyResponse> verifyResetToken(@PathVariable String token) {
+        return ResponseEntity.ok(authService.verifyResetToken(token));
+    }
+
+    /**
+     * トークンを検証し、新しいパスワードを設定する。
+     */
+    @PutMapping("/password/reset")
+    public ResponseEntity<SimpleStatusResponse> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request));
     }
 }

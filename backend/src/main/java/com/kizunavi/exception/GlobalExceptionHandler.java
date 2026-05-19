@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -140,6 +141,30 @@ public class GlobalExceptionHandler {
             .path(request.getRequestURI());
         
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
+     * アカウントロック中のログイン試行を処理する。
+     *
+     * @param ex ロック例外
+     * @param request 現在の HTTP リクエスト
+     * @return HTTP 423
+     */
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ErrorResponse> handleLockedException(
+        LockedException ex,
+        HttpServletRequest request
+    ) {
+        log.error("Locked Exception: {}", ex.getMessage());
+
+        ErrorResponse response = new ErrorResponse()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.LOCKED.value())
+            .error("ACCOUNT_LOCKED")
+            .message("アカウントがロックされています。しばらくしてから再度お試しください")
+            .path(request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.LOCKED).body(response);
     }
 
     /**

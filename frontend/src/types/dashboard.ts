@@ -1,4 +1,4 @@
-export type AlertSeverity = "high" | "middle" | "low";
+export type AlertSeverity = "高" | "中" | "低";
 export type AlertStatus = "warning" | "ok";
 
 export interface AlertItem {

@@ -1,6 +1,6 @@
 ---
 description: テストコード規約（単体テスト・C0・Vitest / JUnit 5）
-globs: backend/src/test/**/*.java,frontend/src/**/*.test.ts,frontend/src/**/*.test.tsx,frontend/vitest.config.ts
+globs: backend/src/test/**/*.java,frontend/src/**/*.test.ts,frontend/src/**/*.test.tsx,frontend/vitest.config.ts,docs/test/**/*.md
 alwaysApply: false
 ---
 
@@ -11,6 +11,15 @@ alwaysApply: false
 - テストは **単体テスト（C0）** に限定する。結合テスト・E2E は本規約の対象外。
 - DB / HTTP / 外部 API / ファイル I/O は必ずモック化する。
 - 正式方針は [ADR-0024](../../docs/adr/0024-testing-strategy.md) に従う。
+
+## テスト台帳（`docs/test/`）
+
+ドメイン別の **実施項目・観点** は [docs/test/README.md](../../docs/test/README.md) で管理する。
+
+- 認証: [auth-backend.md](../../docs/test/auth-backend.md) / [auth-frontend.md](../../docs/test/auth-frontend.md)
+- 認証の本番コードまたは単体テストを変更した PR では、**対応する台帳を同じ PR で必ず更新** する。
+- 台帳のテストケース名は、コード側の `@DisplayName`（Java）または `it('...')`（Vitest）と **一致** させる。
+- 台帳先頭の **最終更新日** と **カバレッジ状況** を、マージ前に実測値で更新する。
 
 ## バックエンド（JUnit 5）
 
@@ -38,3 +47,4 @@ alwaysApply: false
 - 時刻依存ロジックは `Clock`（Java）や `vi.useFakeTimers()`（Vitest）で制御する。
 - テスト間の状態共有を避けるため、`beforeEach` / `afterEach` で初期化する。
 - 新規テンプレート作成時は [テスト入門ガイド](../../docs/guides/testing-guide.md) の命名・構成に合わせる。
+- 新規ドメインのテスト台帳が必要な場合は `docs/test/<domain>-backend.md` / `<domain>-frontend.md` を追加し、[docs/test/README.md](../../docs/test/README.md) の一覧を更新する。

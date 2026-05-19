@@ -43,9 +43,16 @@ public class SecurityConfig {
     /** CORS 設定（{@link CorsConfig} で定義）。 */
     private final CorsConfigurationSource corsConfigurationSource;
 
-    /** 認証不要でアクセス可能なパスパターン。 */
+    /** 認証不要でアクセス可能な認証 API パス。 */
+    private static final String[] PUBLIC_AUTH_ENDPOINTS = {
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/firstlogin",
+        "/api/auth/password/**",
+    };
+
+    /** 認証不要でアクセス可能なその他パス。 */
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/api/auth/**",
         "/v3/api-docs/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
@@ -71,7 +78,9 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(PUBLIC_AUTH_ENDPOINTS).permitAll()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                .requestMatchers("/api/auth/logout").authenticated()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

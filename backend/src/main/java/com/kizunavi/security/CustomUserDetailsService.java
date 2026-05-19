@@ -1,8 +1,10 @@
 package com.kizunavi.security;
 
+import com.kizunavi.auth.TenantLoginSupport;
 import com.kizunavi.entity.User;
 import com.kizunavi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -10,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 
 /**
@@ -19,7 +22,6 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    /** ドメインユーザーの読み込み。 */
     private final UserRepository userRepository;
 
     /**
@@ -32,10 +34,16 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailWithEmployeeAndCustomer(email)
             .orElseThrow(() -> new UsernameNotFoundException(
                 "User not found with email: " + email
             ));
+
+        if (!TenantLoginSupport.isLoginAllowed(user)) {
+            throw new BadCredentialsException("Tenant is not active");
+        }
+
+        boolean accountNonLocked = !isAccountLocked(user);
 
         return new org.springframework.security.core.userdetails.User(
             user.getEmail(),
@@ -43,8 +51,13 @@ public class CustomUserDetailsService implements UserDetailsService {
             user.isEnabled(),
             true,
             true,
-            true,
+            accountNonLocked,
             Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name()))
         );
+    }
+
+    private boolean isAccountLocked(User user) {
+        LocalDateTime lockedUntil = user.getLockedUntil();
+        return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
     }
 }

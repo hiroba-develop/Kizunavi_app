@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useForgotPassword } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 
 const forgotPasswordSchema = z.object({
@@ -21,16 +22,18 @@ export function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
   const { toast } = useToast()
+  const forgotPassword = useForgotPassword()
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
   })
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
+    await forgotPassword.mutateAsync({ email: data.email })
     setSubmittedEmail(data.email)
     setIsSubmitted(true)
     toast({
@@ -105,10 +108,10 @@ export function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isFormSubmitting || forgotPassword.isPending}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-sky-500 text-base font-semibold text-white shadow-sm transition-colors hover:bg-sky-600 disabled:pointer-events-none disabled:opacity-50"
             >
-              {isSubmitting && (
+              {(isFormSubmitting || forgotPassword.isPending) && (
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
               )}
               リセットリンクを送信

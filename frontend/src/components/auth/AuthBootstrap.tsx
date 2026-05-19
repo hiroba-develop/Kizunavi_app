@@ -11,6 +11,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
  */
 let bootstrapStarted = false
 
+/** 単体テスト用: モジュールスコープのブートストラップフラグをリセットする */
+export function resetAuthBootstrapForTests() {
+  bootstrapStarted = false
+}
+
 /**
  * 起動時にリフレッシュ Cookie を用いた silent refresh を行い、
  * 認証状態を復元する境界コンポーネント。
@@ -36,14 +41,14 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
 
     const bootstrap = async () => {
       try {
-        const response = await axios.post<{ accessToken?: string }>(
+        const response = await axios.post<{ token?: string }>(
           `${API_BASE_URL}/api/auth/refresh`,
           {},
           { withCredentials: true }
         )
-        const accessToken = response.data?.accessToken
-        if (accessToken) {
-          setAccessToken(accessToken)
+        const token = response.data?.token
+        if (token) {
+          setAccessToken(token)
         } else {
           clearAuth()
         }

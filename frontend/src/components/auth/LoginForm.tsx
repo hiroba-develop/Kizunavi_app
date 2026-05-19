@@ -38,11 +38,6 @@ export function LoginForm({ variant = 'default' }: LoginFormProps) {
     resolver: zodResolver(loginSchema),
   })
 
-  /**
-   * 検証成功時にログイン API を呼び出す。
-   *
-   * @param data 検証済みフォーム値
-   */
   const onSubmit = (data: LoginFormData) => {
     login.mutate(data)
   }
@@ -135,10 +130,10 @@ export function LoginForm({ variant = 'default' }: LoginFormProps) {
             パスワードをお忘れですか？
           </Link>
           <Link
-            to="/signup"
+            to="/first-login"
             className="text-sky-500 hover:text-sky-600 hover:underline"
           >
-            初めての方
+            初回ログイン（仮パスワードの変更）
           </Link>
         </div>
       )}

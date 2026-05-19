@@ -1,22 +1,21 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '@/lib/axios'
 import { useAuthStore, type User } from '@/store/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
+import { ApiError, AuthService, Role } from '@/api'
 import type {
+  FirstLoginRequest,
+  ForgotPasswordRequest,
   LoginRequest,
-  SignupRequest,
-  TokenResponse,
-  UserResponse,
+  ResetPasswordRequest,
+  SimpleStatusResponse,
 } from '@/api'
+import type { UserResponse } from '@/types/auth'
 
 /**
  * ログイン API を呼び出すミューテーションフック。
- *
- * 成功時は `useAuthStore` にアクセストークンとユーザーを設定し、
- * トースト表示のうえ `/dashboard` へ遷移する。失敗時はエラー用トーストを表示する。
- *
- * @returns `react-query` の `UseMutationResult`。`mutate(data)` に `LoginRequest` を渡して呼び出す。
  */
 export function useLogin() {
   const navigate = useNavigate()
@@ -24,28 +23,33 @@ export function useLogin() {
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (data: LoginRequest): Promise<TokenResponse> => {
-      const response = await apiClient.post<TokenResponse>('/api/auth/login', data)
-      return response.data
-    },
-    onSuccess: async (data) => {
-      setAccessToken(data.accessToken!)
+    mutationFn: async (data: LoginRequest) => AuthService.login(data),
+    onSuccess: async (data, variables) => {
+      setAccessToken(data.token)
+
+      const partialUser: User = {
+        id: 0,
+        email: variables.email,
+        name: data.name,
+        role: Role.ROLE_USER,
+      }
+      setUser(partialUser)
 
       try {
         const userResponse = await apiClient.get<UserResponse>('/api/users/me', {
           headers: {
-            Authorization: `Bearer ${data.accessToken}`,
+            Authorization: `Bearer ${data.token}`,
           },
         })
         const user: User = {
           id: userResponse.data.id!,
           email: userResponse.data.email!,
-          name: userResponse.data.name!,
+          name: userResponse.data.name ?? data.name,
           role: userResponse.data.role!,
         }
         setUser(user)
       } catch {
-        // Silently fail user fetch, authentication is still successful
+        // 認証は成功しているため /users/me 失敗時もログイン継続
       }
 
       toast({
@@ -54,7 +58,28 @@ export function useLogin() {
       })
       navigate('/dashboard')
     },
-    onError: () => {
+    onError: (error: unknown) => {
+      if (error instanceof ApiError && error.status === 423) {
+        toast({
+          variant: 'destructive',
+          title: 'アカウントがロックされています',
+          description:
+            typeof error.body?.message === 'string'
+              ? error.body.message
+              : 'しばらくしてから再度お試しください',
+        })
+        return
+      }
+      if (isAxiosError(error) && error.response?.status === 423) {
+        toast({
+          variant: 'destructive',
+          title: 'アカウントがロックされています',
+          description:
+            (error.response.data as { message?: string })?.message ??
+            'しばらくしてから再度お試しください',
+        })
+        return
+      }
       toast({
         variant: 'destructive',
         title: 'ログイン失敗',
@@ -65,36 +90,103 @@ export function useLogin() {
 }
 
 /**
- * 新規登録 API を呼び出すミューテーションフック。
- *
- * 成功時はトーストを表示し `/login` へ誘導する。失敗時はサーバーメッセージまたは
- * 汎用文言でトーストを表示する。
- *
- * @returns `UseMutationResult`。`mutate(data)` に `SignupRequest` を渡す。
+ * パスワード再発行メール送信 API を呼び出すミューテーションフック。
  */
-export function useSignup() {
+export function useForgotPassword() {
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async (
+      data: ForgotPasswordRequest
+    ): Promise<SimpleStatusResponse> => AuthService.forgotPassword(data),
+    onError: (error: unknown) => {
+      const description =
+        error instanceof ApiError && typeof error.body?.message === 'string'
+          ? error.body.message
+          : 'メールの送信に失敗しました。しばらくしてから再度お試しください。'
+      toast({
+        variant: 'destructive',
+        title: '送信に失敗しました',
+        description,
+      })
+    },
+  })
+}
+
+/**
+ * パスワードリセットトークンの有効性を検証するクエリフック。
+ */
+export function useVerifyResetToken(token: string | null) {
+  return useQuery({
+    queryKey: ['password-reset', 'verify', token],
+    queryFn: () => AuthService.verifyResetToken(token!),
+    enabled: !!token,
+    retry: false,
+  })
+}
+
+/**
+ * パスワード再設定 API を呼び出すミューテーションフック。
+ */
+export function useResetPassword() {
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async (data: ResetPasswordRequest): Promise<SimpleStatusResponse> =>
+      AuthService.resetPassword(data),
+    onSuccess: () => {
+      toast({
+        title: 'パスワードを再設定しました',
+        description: '新しいパスワードでログインしてください。',
+      })
+    },
+    onError: (error: unknown) => {
+      const description =
+        error instanceof ApiError && typeof error.body?.message === 'string'
+          ? error.body.message
+          : 'パスワードの再設定に失敗しました。リンクの有効期限をご確認ください。'
+      toast({
+        variant: 'destructive',
+        title: '再設定に失敗しました',
+        description,
+      })
+    },
+  })
+}
+
+/**
+ * 初回パスワード設定 API を呼び出すミューテーションフック。
+ */
+export function useFirstLogin() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (data: SignupRequest): Promise<UserResponse> => {
-      const response = await apiClient.post<UserResponse>('/api/auth/signup', data)
-      return response.data
-    },
+    mutationFn: async (data: FirstLoginRequest): Promise<SimpleStatusResponse> =>
+      AuthService.firstLogin(data),
     onSuccess: () => {
       toast({
-        title: '登録成功',
-        description: 'アカウントが作成されました。ログインしてください。',
+        title: 'パスワードを設定しました',
+        description: '新しいパスワードでログインしてください。',
       })
       navigate('/login')
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
+    onError: (error: unknown) => {
+      let description = '仮パスワードまたはメールアドレスが正しくありません'
+      if (error instanceof ApiError) {
+        if (typeof error.body?.message === 'string') {
+          description = error.body.message
+        }
+      } else if (isAxiosError(error) && error.response?.data) {
+        const data = error.response.data as { message?: string }
+        if (typeof data.message === 'string') {
+          description = data.message
+        }
+      }
       toast({
         variant: 'destructive',
-        title: '登録失敗',
-        description:
-          error.response?.data?.message ||
-          'アカウントの作成に失敗しました',
+        title: '設定に失敗しました',
+        description,
       })
     },
   })
@@ -102,11 +194,6 @@ export function useSignup() {
 
 /**
  * ログアウト API を呼び出し、ローカル認証状態を破棄するミューテーションフック。
- *
- * アクセストークンがある場合のみ `/api/auth/logout` を叩く。成功・失敗にかかわらず
- * ストアはクリアされ `/login` へ遷移する。
- *
- * @returns `UseMutationResult`。引数なしで `mutate()` を呼び出す。
  */
 export function useLogout() {
   const navigate = useNavigate()
@@ -115,6 +202,7 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
+      // リフレッシュ Cookie の失効には API 呼び出しが必須（ローカル clear のみでは不十分）
       if (accessToken) {
         await apiClient.post('/api/auth/logout')
       }
