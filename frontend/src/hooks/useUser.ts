@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/axios'
 import { useAuthStore, type User } from '@/store/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
-import type { UserResponse, UpdateUserRequest } from '@/api'
+import type { UpdateUserRequest, UserResponse } from '@/types/auth'
 
 /**
  * 認証済みの場合に `/api/users/me` から現在ユーザーを取得するクエリフック。

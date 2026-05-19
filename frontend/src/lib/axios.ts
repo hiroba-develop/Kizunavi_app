@@ -67,6 +67,17 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const requestUrl = originalRequest.url ?? ''
+      const isPublicAuthRequest =
+        requestUrl.includes('/api/auth/login') ||
+        requestUrl.includes('/api/auth/password/') ||
+        requestUrl.includes('/api/auth/firstlogin') ||
+        requestUrl.includes('/api/auth/refresh')
+
+      if (isPublicAuthRequest) {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -96,12 +107,12 @@ apiClient.interceptors.response.use(
           { withCredentials: true }
         )
 
-        const { accessToken } = response.data
-        useAuthStore.getState().setAccessToken(accessToken)
+        const { token } = response.data as { token: string }
+        useAuthStore.getState().setAccessToken(token)
 
-        processQueue(null, accessToken)
+        processQueue(null, token)
 
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`
+        originalRequest.headers.Authorization = `Bearer ${token}`
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)

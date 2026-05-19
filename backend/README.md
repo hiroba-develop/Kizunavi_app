@@ -136,10 +136,13 @@ DEVTOOLS_RESTART_ENABLED=false ./gradlew bootRun
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| POST | `/api/auth/signup` | 新規ユーザー登録 |
 | POST | `/api/auth/login` | ログイン |
 | POST | `/api/auth/refresh` | トークンリフレッシュ |
 | POST | `/api/auth/logout` | ログアウト |
+| PUT | `/api/auth/firstlogin` | 初回パスワード設定 |
+| POST | `/api/auth/password/forgot` | パスワード再発行メール送信 |
+| GET | `/api/auth/password/reset/verify/{token}` | リセットトークン検証 |
+| PUT | `/api/auth/password/reset` | パスワード再設定 |
 
 ### ユーザー API
 

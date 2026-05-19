@@ -7,6 +7,7 @@ import {
 } from "../types/dashboard";
 import type {
   AlertItem,
+  AlertSeverity,
   ScoreCardData,
   SurveyOption,
   SurveySnapshot,
@@ -27,10 +28,10 @@ const phaseToneFromScore = (score: number): "danger" | "warning" | "good" => {
   return "danger";
 };
 
-const alertSeverityFromPriority = (priority: number): "high" | "middle" | "low" => {
-  if (priority <= 3) return "high";
-  if (priority <= 7) return "middle";
-  return "low";
+const alertSeverityFromPriority = (priority: number): AlertSeverity => {
+  if (priority <= 3) return "高";
+  if (priority <= 7) return "中";
+  return "低";
 };
 
 const alertStatusFromPriority = (priority: number): "warning" | "ok" =>
@@ -465,15 +466,10 @@ interface AlertRowProps {
 }
 
 const AlertRow = ({ alert }: AlertRowProps) => {
-  const severityClass = {
-    high: "bg-rose-100 text-rose-700",
-    middle: "bg-amber-100 text-amber-700",
-    low: "bg-emerald-100 text-emerald-700",
-  };
-  const severityLabel = {
-    high: "High",
-    middle: "Middle",
-    low: "Low",
+  const severityClass: Record<AlertSeverity, string> = {
+    高: "bg-rose-100 text-rose-700",
+    中: "bg-amber-100 text-amber-700",
+    低: "bg-emerald-100 text-emerald-700",
   };
 
   return (
@@ -517,7 +513,7 @@ const AlertRow = ({ alert }: AlertRowProps) => {
         <span
           className={`flex-shrink-0 inline-flex px-2 py-0.5 text-[10px] font-semibold rounded ${severityClass[alert.severity]}`}
         >
-          {severityLabel[alert.severity]}
+          {alert.severity}
         </span>
       </div>
     </li>

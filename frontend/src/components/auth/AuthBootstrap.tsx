@@ -36,14 +36,14 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
 
     const bootstrap = async () => {
       try {
-        const response = await axios.post<{ accessToken?: string }>(
+        const response = await axios.post<{ token?: string }>(
           `${API_BASE_URL}/api/auth/refresh`,
           {},
           { withCredentials: true }
         )
-        const accessToken = response.data?.accessToken
-        if (accessToken) {
-          setAccessToken(accessToken)
+        const token = response.data?.token
+        if (token) {
+          setAccessToken(token)
         } else {
           clearAuth()
         }

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from '@/store/useAuthStore'
+import { useLogout } from '@/hooks/useAuth'
 
 // サイドバーのナビゲーションアイテム
 const navigationItems = [
@@ -13,15 +14,14 @@ const navigationItems = [
  * 認証後の共通シェル。子ルートは `Outlet` で描画する。
  */
 const Layout = () => {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const location = useLocation();
-  const navigate = useNavigate();
+  const logoutMutation = useLogout();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ログアウト処理
+  /** サーバー側のリフレッシュ失効と Cookie 削除を含むログアウト。 */
   const handleLogout = () => {
-    logout();
-    navigate("/login");
+    logoutMutation.mutate();
   };
 
   return (
