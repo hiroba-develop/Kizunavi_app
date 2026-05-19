@@ -111,10 +111,20 @@ npm run test:coverage
 4. [frontend/src/store/__tests__/useAuthStore.test.ts](../../frontend/src/store/__tests__/useAuthStore.test.ts)
 5. [frontend/src/hooks/__tests__/useUser.test.tsx](../../frontend/src/hooks/__tests__/useUser.test.tsx)
 
-## 9. PR 前セルフチェック
+## 9. テスト台帳（実施項目の管理）
+
+**何を・どの観点で** テストしているかは [docs/test/README.md](../test/README.md) にまとめます。
+
+- 認証（バックエンド）: [auth-backend.md](../test/auth-backend.md)
+- 認証（フロントエンド）: [auth-frontend.md](../test/auth-frontend.md)
+
+認証まわりのコードやテストを変更したら、上記台帳の **最終更新日・テストケース一覧・カバレッジ状況** を同じ PR で更新してください。詳細ルールは台帳 README と [`.cursor/rules/60-testing.mdc`](../../.cursor/rules/60-testing.mdc) を参照。
+
+## 10. PR 前セルフチェック
 
 - [ ] 変更したロジックに対して単体テストを追加した
 - [ ] 正常系だけでなく、主要な異常系も1つ以上書いた
 - [ ] テスト名を読めば意図が分かる
 - [ ] ローカルでテストを実行し、失敗なく完了した
 - [ ] カバレッジレポートを確認し、未実行コードを把握した
+- [ ] 対象ドメインの [docs/test/](../test/) 台帳を更新した（該当する場合）

@@ -11,6 +11,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
  */
 let bootstrapStarted = false
 
+/** 単体テスト用: モジュールスコープのブートストラップフラグをリセットする */
+export function resetAuthBootstrapForTests() {
+  bootstrapStarted = false
+}
+
 /**
  * 起動時にリフレッシュ Cookie を用いた silent refresh を行い、
  * 認証状態を復元する境界コンポーネント。

@@ -37,11 +37,21 @@ pnpm-debug.log*
 # ===========================================
 # Backend (Java / Gradle)
 # ===========================================
-backend/.gradle/
-backend/build/
+# Gradle キャッシュ（メインプロジェクト・buildSrc 等）
+backend/**/.gradle/
+backend/**/build/
 !backend/gradle/wrapper/gradle-wrapper.jar
 backend/bin/
+backend/out/
 backend/docs/openapi.json
+
+# JVM / IDE が生成するデバッグ・メタデータ
+*.hprof
+hs_err_pid*
+replay_pid*
+.classpath
+.project
+.settings/
 
 # ===========================================
 # Frontend (Node.js / Vite)

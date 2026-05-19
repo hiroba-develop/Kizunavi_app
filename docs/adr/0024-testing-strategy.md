@@ -27,6 +27,7 @@
    - `backend/src/main/java/com/kizunavi/dto/**`
    - `backend/src/main/java/com/kizunavi/controller/*Api.java`
    - `frontend/src/api/**`
+7. **テスト台帳**を `docs/test/` でドメイン別に管理する。実装・単体テストの変更時は台帳を同じ PR で更新し、観点ラベル・ケース名・カバレッジ状況をコードと整合させる（初版: 認証は [auth-backend.md](../test/auth-backend.md) / [auth-frontend.md](../test/auth-frontend.md)）。
 
 ## Consequences
 
@@ -53,3 +54,4 @@
 - [backend/build.gradle](../../backend/build.gradle)
 - [frontend/package.json](../../frontend/package.json)
 - [docs/guides/testing-guide.md](../guides/testing-guide.md)
+- [docs/test/README.md](../test/README.md)（テスト台帳インデックス）

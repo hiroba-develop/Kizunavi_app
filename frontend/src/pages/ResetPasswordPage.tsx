@@ -52,7 +52,6 @@ export function ResetPasswordPage() {
 
   const onSubmit = (data: ResetPasswordFormData) => {
     if (!token) return
-
     resetPassword.mutate(
       { token, newPassword: data.newPassword },
       {
